@@ -1,8 +1,6 @@
-from CompareOcrModels.ResultNormalizer import ResultNormalizer
-
-
-class PaddleOcrNormalizer(ResultNormalizer):
-    def normalize(self, result: dict) -> dict:
+class PaddleOcrNormalizer():
+    @staticmethod
+    def normalize(result: dict) -> dict:
         """
         Normalize the OCR result from PaddleOCR format to a standard format.
         
