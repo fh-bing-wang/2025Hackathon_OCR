@@ -246,6 +246,126 @@
             transform: translateY(0);
         }
 
+        .upload-mode-selection {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .mode-option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .mode-option input[type="radio"] {
+            accent-color: #667eea;
+        }
+
+        .mode-option input[type="radio"]:checked+.mode-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .mode-option:has(input:checked) {
+            border-color: #667eea;
+            background: #e8f0ff;
+        }
+
+        .mode-label {
+            font-size: 1rem;
+            color: #555;
+            transition: all 0.3s ease;
+        }
+
+        .folder-preview {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .folder-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .folder-icon {
+            width: 50px;
+            height: 50px;
+            background: #667eea;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .folder-details h4 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .folder-details p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .file-list {
+            display: grid;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            font-size: 0.9rem;
+        }
+
+        .file-item-icon {
+            width: 24px;
+            height: 24px;
+            background: #28a745;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .file-item-name {
+            flex: 1;
+            color: #333;
+        }
+
+        .file-item-size {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
         .process-section {
             text-align: center;
         }
@@ -466,22 +586,49 @@
             <div class="section">
                 <div class="section-title">
                     <span>📁</span>
-                    Upload File
+                    Upload Files
                 </div>
 
-                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                    <div class="upload-icon">📄</div>
-                    <div class="upload-text">Click to upload or drag files here</div>
-                    <div class="upload-subtext">Supports PNG, JPG, JPEG image files</div>
+                <!-- Upload Mode Selection -->
+                <div class="upload-mode-selection">
+                    <label class="mode-option">
+                        <input type="radio" name="uploadMode" value="file" checked>
+                        <span class="mode-label">📄 Single File</span>
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="uploadMode" value="folder">
+                        <span class="mode-label">📁 Folder</span>
+                    </label>
+                </div>
+
+                <div class="upload-area" onclick="triggerFileInput()">
+                    <div class="upload-icon" id="uploadIcon">📄</div>
+                    <div class="upload-text" id="uploadText">Click to upload or drag files here</div>
+                    <div class="upload-subtext" id="uploadSubtext">Supports PNG, JPG, JPEG image files</div>
                 </div>
                 <input type="file" id="fileInput" accept=".png,.jpg,.jpeg" />
 
                 <div class="file-preview" id="filePreview">
-                    <div class="file-info">
-                        <div class="file-icon">📄</div>
-                        <div class="file-details">
-                            <h4 id="fileName">filename.jpg</h4>
-                            <p id="fileSize">2.3 MB • Image</p>
+                    <div id="singleFilePreview" class="single-file-preview">
+                        <div class="file-info">
+                            <div class="file-icon">📄</div>
+                            <div class="file-details">
+                                <h4 id="fileName">filename.jpg</h4>
+                                <p id="fileSize">2.3 MB • Image</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="folderPreview" class="folder-preview" style="display: none;">
+                        <div class="folder-info">
+                            <div class="folder-icon">📁</div>
+                            <div class="folder-details">
+                                <h4 id="folderName">Selected Folder</h4>
+                                <p id="folderStats">0 image files found</p>
+                            </div>
+                        </div>
+                        <div class="file-list" id="fileList">
+                            <!-- File list will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -571,15 +718,24 @@
 
     <script>
         // Global variables
-        let selectedFile = null;
+        let selectedFiles = [];
+        let uploadMode = 'file'; // 'file' or 'folder'
         let selectedModels = new Set(['paddle', 'easy', 'tesseract', 'yomitoku']);
 
         // DOM elements
         const fileInput = document.getElementById('fileInput');
         const uploadArea = document.querySelector('.upload-area');
         const filePreview = document.getElementById('filePreview');
+        const singleFilePreview = document.getElementById('singleFilePreview');
+        const folderPreview = document.getElementById('folderPreview');
         const fileName = document.getElementById('fileName');
         const fileSize = document.getElementById('fileSize');
+        const folderName = document.getElementById('folderName');
+        const folderStats = document.getElementById('folderStats');
+        const fileList = document.getElementById('fileList');
+        const uploadIcon = document.getElementById('uploadIcon');
+        const uploadText = document.getElementById('uploadText');
+        const uploadSubtext = document.getElementById('uploadSubtext');
         const processBtn = document.getElementById('processBtn');
         const progressSection = document.getElementById('progressSection');
         const progressContainer = document.getElementById('progressContainer');
@@ -588,6 +744,39 @@
         const selectAllBtn = document.getElementById('selectAllBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const selectionCount = document.getElementById('selectionCount');
+
+        // Upload mode handling
+        document.querySelectorAll('input[name="uploadMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                uploadMode = e.target.value;
+                updateUploadMode();
+            });
+        });
+
+        function updateUploadMode() {
+            if (uploadMode === 'file') {
+                fileInput.removeAttribute('webkitdirectory');
+                fileInput.removeAttribute('multiple');
+                uploadIcon.textContent = '📄';
+                uploadText.textContent = 'Click to upload or drag file here';
+                uploadSubtext.textContent = 'Supports PNG, JPG, JPEG image files';
+            } else {
+                fileInput.setAttribute('webkitdirectory', '');
+                fileInput.setAttribute('multiple', '');
+                uploadIcon.textContent = '📁';
+                uploadText.textContent = 'Click to select folder';
+                uploadSubtext.textContent = 'Will process all image files in the folder';
+            }
+
+            // Reset selection
+            selectedFiles = [];
+            filePreview.classList.remove('active');
+            updateProcessButton();
+        }
+
+        function triggerFileInput() {
+            fileInput.click();
+        }
 
         // File upload handling
         uploadArea.addEventListener('dragover', (e) => {
@@ -603,28 +792,64 @@
             e.preventDefault();
             uploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileSelect(files[0]);
-            }
+            handleFileSelection(files);
         });
 
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
+            handleFileSelection(e.target.files);
         });
 
-        function handleFileSelect(file) {
-            if (!file.type.startsWith('image/')) {
-                showError('Please select an image file (PNG, JPG, JPEG)');
+        function handleFileSelection(files) {
+            if (!files || files.length === 0) return;
+
+            const imageFiles = Array.from(files).filter(file =>
+                file.type.startsWith('image/') &&
+                /\.(png|jpg|jpeg)$/i.test(file.name)
+            );
+
+            if (imageFiles.length === 0) {
+                showError('No valid image files found. Please select PNG, JPG, or JPEG files.');
                 return;
             }
 
-            selectedFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = `${formatFileSize(file.size)} • Image`;
+            selectedFiles = imageFiles;
+
+            if (uploadMode === 'file') {
+                displaySingleFilePreview(imageFiles[0]);
+            } else {
+                displayFolderPreview(imageFiles);
+            }
+
             filePreview.classList.add('active');
             updateProcessButton();
+        }
+
+        function displaySingleFilePreview(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = `${formatFileSize(file.size)} • Image`;
+            singleFilePreview.style.display = 'block';
+            folderPreview.style.display = 'none';
+        }
+
+        function displayFolderPreview(files) {
+            const folderPath = files.length > 0 ? files[0].webkitRelativePath.split('/')[0] : 'Selected Folder';
+            folderName.textContent = folderPath || 'Selected Folder';
+            folderStats.textContent = `${files.length} image file${files.length !== 1 ? 's' : ''} found`;
+
+            fileList.innerHTML = '';
+            files.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-item-icon">🖼️</div>
+                    <div class="file-item-name">${file.name}</div>
+                    <div class="file-item-size">${formatFileSize(file.size)}</div>
+                `;
+                fileList.appendChild(fileItem);
+            });
+
+            singleFilePreview.style.display = 'none';
+            folderPreview.style.display = 'block';
         }
 
         // Model selection handling
@@ -698,20 +923,24 @@
         }
 
         function updateProcessButton() {
-            const hasFile = selectedFile !== null;
+            const hasFiles = selectedFiles.length > 0;
             const hasModels = selectedModels.size > 0;
 
-            processBtn.disabled = !hasFile || !hasModels;
+            processBtn.disabled = !hasFiles || !hasModels;
 
             // Update button text based on selection
             const modelCount = selectedModels.size;
+            const fileCount = selectedFiles.length;
             const buttonText = processBtn.querySelector('span:last-child');
-            if (modelCount === 0) {
+
+            if (!hasFiles) {
+                buttonText.textContent = uploadMode === 'file' ? 'Select File to Process' : 'Select Folder to Process';
+            } else if (modelCount === 0) {
                 buttonText.textContent = 'Select Models to Process';
-            } else if (modelCount === 1) {
-                buttonText.textContent = 'Process with 1 Model';
+            } else if (uploadMode === 'file') {
+                buttonText.textContent = modelCount === 1 ? 'Process with 1 Model' : `Process with ${modelCount} Models`;
             } else {
-                buttonText.textContent = `Process with ${modelCount} Models`;
+                buttonText.textContent = `Process ${fileCount} Files with ${modelCount} Model${modelCount !== 1 ? 's' : ''}`;
             }
         }
 
@@ -719,7 +948,7 @@
         processBtn.addEventListener('click', startProcessing);
 
         function startProcessing() {
-            if (!selectedFile || selectedModels.size === 0) return;
+            if (selectedFiles.length === 0 || selectedModels.size === 0) return;
 
             // Reset UI
             progressSection.classList.add('active');
@@ -734,8 +963,15 @@
                 createProgressItem(model);
             });
 
+            // Prepare file paths
+            const filePaths = selectedFiles.map(file => {
+                // In a real implementation, you might need to upload files first 
+                // and get their server paths, or use File objects directly
+                return file.webkitRelativePath || file.name;
+            });
+
             // Start processing each model
-            processModels(models);
+            processModels(models, filePaths);
         }
 
         function createProgressItem(model) {
@@ -761,12 +997,12 @@
             progressContainer.appendChild(progressItem);
         }
 
-        async function processModels(models) {
+        async function processModels(models, filePaths) {
             const results = {};
 
             for (const model of models) {
                 try {
-                    await processModel(model, results);
+                    await processModel(model, filePaths, results);
                 } catch (error) {
                     console.error(`Error processing ${model}:`, error);
                     updateProgressStatus(model, 'error');
@@ -778,7 +1014,7 @@
             processBtn.disabled = false;
         }
 
-        async function processModel(model, results) {
+        async function processModel(model, filePaths, results) {
             const progressItem = document.getElementById(`progress-${model}`);
             const statusElement = progressItem.querySelector('.progress-status');
             const fillElement = progressItem.querySelector('.progress-fill');
@@ -789,24 +1025,72 @@
             statusElement.className = 'progress-status processing';
             statusElement.innerHTML = '<span class="spinner"></span> Processing';
 
-            // Simulate processing progress
-            for (let i = 0; i <= 100; i += 10) {
-                fillElement.style.width = `${i}%`;
-                await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+            try {
+                // Prepare the request payload
+                const payload = {
+                    model: model,
+                    files: uploadMode === 'file' ? filePaths[0] : filePaths
+                };
+
+                // Update progress to 25%
+                fillElement.style.width = '25%';
+
+                // Make API call to /process endpoint
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                // Update progress to 50%
+                fillElement.style.width = '50%';
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Update progress to 75%
+                fillElement.style.width = '75%';
+
+                // Simulate final processing
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Complete progress
+                fillElement.style.width = '100%';
+
+                // Complete processing
+                progressItem.classList.remove('processing');
+                progressItem.classList.add('completed');
+                statusElement.textContent = 'Completed';
+                statusElement.className = 'progress-status completed';
+                statusElement.innerHTML = '✅ Completed';
+
+                // Store results
+                results[model] = result;
+
+            } catch (error) {
+                console.error(`Error processing ${model}:`, error);
+
+                // Update to error state
+                progressItem.classList.remove('processing');
+                progressItem.classList.add('error');
+                statusElement.textContent = 'Error';
+                statusElement.className = 'progress-status error';
+                statusElement.innerHTML = '❌ Error';
+
+                // Store error result
+                results[model] = {
+                    error: true,
+                    message: error.message,
+                    text: 'Processing failed',
+                    confidence: 0,
+                    processingTime: '0s'
+                };
             }
-
-            // Simulate API call or actual processing
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-            // Complete processing
-            progressItem.classList.remove('processing');
-            progressItem.classList.add('completed');
-            statusElement.textContent = 'Completed';
-            statusElement.className = 'progress-status completed';
-            statusElement.innerHTML = '✅ Completed';
-
-            // Generate mock results
-            results[model] = generateMockResult(model);
         }
 
         function updateProgressStatus(model, status) {
@@ -854,39 +1138,79 @@
                 };
 
                 const resultCard = document.createElement('div');
-                resultCard.className = 'result-card';
-                resultCard.innerHTML = `
-                    <div class="result-header">
-                        <div class="result-title">${modelNames[model]} Results</div>
-                        <button class="download-btn" onclick="downloadResult('${model}')">
-                            📥 Download
-                        </button>
-                    </div>
-                    <div class="result-content">
-                        <p><strong>Extracted Text:</strong></p>
-                        <p style="margin: 10px 0; padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #667eea;">${result.text}</p>
-                        <div style="display: flex; gap: 20px; font-size: 0.9rem; color: #666; margin-top: 10px;">
-                            <span><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</span>
-                            <span><strong>Processing Time:</strong> ${result.processingTime}</span>
-                            <span><strong>Language:</strong> ${result.detectedLanguage.toUpperCase()}</span>
+                resultCard.className = result.error ? 'result-card error-card' : 'result-card';
+
+                if (result.error) {
+                    resultCard.style.borderLeftColor = '#dc3545';
+                    resultCard.innerHTML = `
+                        <div class="result-header">
+                            <div class="result-title">${modelNames[model]} Results</div>
+                            <span style="color: #dc3545; font-weight: 500;">❌ Failed</span>
                         </div>
-                    </div>
-                `;
+                        <div class="result-content">
+                            <p style="color: #dc3545;"><strong>Error:</strong> ${result.message}</p>
+                            <p style="color: #666; font-style: italic; margin-top: 10px;">Processing failed for this model. Please try again or check the server logs.</p>
+                        </div>
+                    `;
+                } else {
+                    resultCard.innerHTML = `
+                        <div class="result-header">
+                            <div class="result-title">${modelNames[model]} Results</div>
+                            <button class="download-btn" onclick="downloadResult('${model}', ${JSON.stringify(result).replace(/"/g, '&quot;')})">
+                                📥 Download
+                            </button>
+                        </div>
+                        <div class="result-content">
+                            <p><strong>Extracted Text:</strong></p>
+                            <p style="margin: 10px 0; padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #667eea;">${result.text || 'No text extracted'}</p>
+                            <div style="display: flex; gap: 20px; font-size: 0.9rem; color: #666; margin-top: 10px; flex-wrap: wrap;">
+                                ${result.confidence !== undefined ? `<span><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</span>` : ''}
+                                ${result.processingTime ? `<span><strong>Processing Time:</strong> ${result.processingTime}</span>` : ''}
+                                ${result.detectedLanguage ? `<span><strong>Language:</strong> ${result.detectedLanguage.toUpperCase()}</span>` : ''}
+                                ${uploadMode === 'folder' ? `<span><strong>Files Processed:</strong> ${selectedFiles.length}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
                 resultsContainer.appendChild(resultCard);
             });
         }
 
-        function downloadResult(model) {
-            // Mock download functionality
-            const modelNames = {
-                paddle: 'Paddle OCR',
-                easy: 'Easy OCR',
-                tesseract: 'Tesseract',
-                yomitoku: 'YomiToku'
-            };
+        function downloadResult(model, result) {
+            try {
+                const modelNames = {
+                    paddle: 'Paddle OCR',
+                    easy: 'Easy OCR',
+                    tesseract: 'Tesseract',
+                    yomitoku: 'YomiToku'
+                };
 
-            alert(`Downloading ${modelNames[model]} results...`);
-            // In a real implementation, this would trigger a file download
+                // Create a downloadable JSON file with the results
+                const downloadData = {
+                    model: model,
+                    modelName: modelNames[model],
+                    timestamp: new Date().toISOString(),
+                    uploadMode: uploadMode,
+                    fileCount: selectedFiles.length,
+                    results: typeof result === 'string' ? JSON.parse(result) : result
+                };
+
+                const dataStr = JSON.stringify(downloadData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${model}_ocr_results_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error('Error downloading results:', error);
+                alert('Error downloading results. Please try again.');
+            }
         }
 
         function showError(message) {
@@ -913,6 +1237,7 @@
             card.classList.add('selected');
         });
         updateSelectionCount();
+        updateProcessButton();
     </script>
 </body>
 
