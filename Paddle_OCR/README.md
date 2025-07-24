@@ -1,5 +1,7 @@
 # Activate virtual env
+source ./compare_models_env/bin/activate
 source ./paddle_env/bin/activate
+
 
 # Doc for installation of PaddleOCR 
 https://www.paddlepaddle.org.cn/en/install/quick?docurl=/documentation/docs/en/develop/install/pip/linux-pip_en.html
