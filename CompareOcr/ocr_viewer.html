@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Results Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #f0f4ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .results-container {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+
+        .results-container.active {
+            display: flex;
+        }
+
+        .panel {
+            height: 100%;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .text-panel {
+            background: #f8f9fa;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .image-panel {
+            background: #fff;
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .resizer {
+            width: 6px;
+            background: #e0e0e0;
+            cursor: col-resize;
+            position: relative;
+            transition: background 0.2s ease;
+        }
+
+        .resizer:hover {
+            background: #667eea;
+        }
+
+        .resizer::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 40px;
+            background: repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 2px,
+                    #ccc 2px,
+                    #ccc 4px);
+            border-radius: 10px;
+            opacity: 0.6;
+        }
+
+        .panel-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .text-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+
+        .image-content {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #ffeaea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .file-info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .file-info strong {
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .results-container.active {
+                flex-direction: column;
+            }
+
+            .resizer {
+                height: 6px;
+                width: 100%;
+                cursor: row-resize;
+            }
+
+            .resizer::before {
+                width: 40px;
+                height: 20px;
+                background: repeating-linear-gradient(0deg,
+                        transparent,
+                        transparent 2px,
+                        #ccc 2px,
+                        #ccc 4px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>OCR Results Viewer</h1>
+            <p>Upload your files to view OCR text extraction and processed images</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Click to upload or drag files here</div>
+                <div class="upload-subtext">Supports images (PNG, JPG) and JSON result files</div>
+            </div>
+            <input type="file" id="fileInput" multiple accept=".png,.jpg,.jpeg,.json">
+        </div>
+
+        <div class="loading">
+            <div class="spinner"></div>
+            <div>Processing your files...</div>
+        </div>
+
+        <div class="results-container" id="resultsContainer">
+            <div class="panel text-panel">
+                <div class="panel-header">📝 Extracted Text</div>
+                <div id="textContent" class="text-content">
+                    Upload files to see extracted text results here...
+                </div>
+            </div>
+
+            <div class="resizer" id="resizer"></div>
+
+            <div class="panel image-panel">
+                <div class="panel-header" style="position: absolute; top: 20px; left: 20px; right: 20px; z-index: 1;">
+                    🖼️ Processed Image</div>
+                <img id="imageContent" class="image-content" alt="Processed image will appear here"
+                    style="display: none;">
+                <div id="imagePlaceholder" style="text-align: center; color: #888;">
+                    Upload files to see processed images here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.querySelector('.upload-area');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const loading = document.querySelector('.loading');
+        const textContent = document.getElementById('textContent');
+        const imageContent = document.getElementById('imageContent');
+        const imagePlaceholder = document.getElementById('imagePlaceholder');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Panel resizing functionality
+        const resizer = document.getElementById('resizer');
+        const textPanel = document.querySelector('.text-panel');
+        const imagePanel = document.querySelector('.image-panel');
+
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
+        });
+
+        function handleResize(e) {
+            if (!isResizing) return;
+
+            const container = resultsContainer;
+            const containerRect = container.getBoundingClientRect();
+            const newPosition = e.clientX - containerRect.left;
+            const containerWidth = containerRect.width;
+
+            // Calculate percentages
+            const leftPercent = (newPosition / containerWidth) * 100;
+            const rightPercent = 100 - leftPercent;
+
+            // Set minimum widths (25% each)
+            if (leftPercent >= 25 && rightPercent >= 25) {
+                textPanel.style.flex = `0 0 ${leftPercent}%`;
+                imagePanel.style.flex = `0 0 ${rightPercent}%`;
+            }
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Touch support for mobile
+        resizer.addEventListener('touchstart', (e) => {
+            isResizing = true;
+            e.preventDefault();
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isResizing) return;
+            const touch = e.touches[0];
+            handleResize({ clientX: touch.clientX });
+        });
+
+        document.addEventListener('touchend', stopResize);
+
+        // File handling
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            loading.classList.add('active');
+            resultsContainer.classList.remove('active');
+
+            const fileArray = Array.from(files);
+            let jsonFile = null;
+            let imageFile = null;
+
+            // Separate JSON and image files
+            fileArray.forEach(file => {
+                if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                    jsonFile = file;
+                } else if (file.type.startsWith('image/')) {
+                    imageFile = file;
+                }
+            });
+
+            Promise.all([
+                jsonFile ? processJsonFile(jsonFile) : Promise.resolve(null),
+                imageFile ? processImageFile(imageFile) : Promise.resolve(null)
+            ]).then(([textData, imageData]) => {
+                displayResults(textData, imageData, fileArray);
+                loading.classList.remove('active');
+                resultsContainer.classList.add('active');
+            }).catch(error => {
+                loading.classList.remove('active');
+                showError(error.message);
+            });
+        }
+
+        function processJsonFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const jsonData = JSON.parse(e.target.result);
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(new Error('Invalid JSON file'));
+                    }
+                };
+                reader.onerror = () => reject(new Error('Error reading JSON file'));
+                reader.readAsText(file);
+            });
+        }
+
+        function processImageFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    resolve(e.target.result);
+                };
+                reader.onerror = () => reject(new Error('Error reading image file'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function displayResults(textData, imageData, files) {
+            // Display file info
+            const fileInfo = files.map(f => `${f.name} (${formatFileSize(f.size)})`).join(', ');
+
+            // Display text content
+            if (textData) {
+                let displayText = '';
+
+                if (typeof textData === 'string') {
+                    displayText = textData;
+                } else if (Array.isArray(textData)) {
+                    // Handle array of OCR results
+                    displayText = textData.map((item, index) => {
+                        if (typeof item === 'string') {
+                            return `Line ${index + 1}: ${item}`;
+                        } else if (item.text) {
+                            return `Line ${index + 1}: ${item.text}`;
+                        } else {
+                            return `Line ${index + 1}: ${JSON.stringify(item, null, 2)}`;
+                        }
+                    }).join('\n');
+                } else if (textData.text) {
+                    displayText = textData.text;
+                } else {
+                    displayText = JSON.stringify(textData, null, 2);
+                }
+
+                textContent.innerHTML = `
+                    <div class="file-info">
+                        <strong>Files:</strong> ${fileInfo}
+                    </div>
+                    <pre>${displayText}</pre>
+                `;
+            } else {
+                textContent.innerHTML = `
+                    <div class="file-info">
+                        <strong>Files:</strong> ${fileInfo}
+                    </div>
+                    <div style="color: #888; font-style: italic;">No text data found. Upload a JSON file containing OCR results.</div>
+                `;
+            }
+
+            // Display image content
+            if (imageData) {
+                imageContent.src = imageData;
+                imageContent.style.display = 'block';
+                imagePlaceholder.style.display = 'none';
+            } else {
+                imageContent.style.display = 'none';
+                imagePlaceholder.style.display = 'block';
+                imagePlaceholder.innerHTML = '<div style="color: #888; font-style: italic;">No image found. Upload an image file to see it here.</div>';
+            }
+        }
+
+        function showError(message) {
+            textContent.innerHTML = `<div class="error"><strong>Error:</strong> ${message}</div>`;
+            resultsContainer.classList.add('active');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+
+</html>
