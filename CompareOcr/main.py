@@ -6,5 +6,5 @@ app = FastAPI()
 
 
 @app.get("/")
-def read_root():
+def process():
     return {"Hello": "World"}

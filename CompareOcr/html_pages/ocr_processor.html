@@ -963,15 +963,8 @@
                 createProgressItem(model);
             });
 
-            // Prepare file paths
-            const filePaths = selectedFiles.map(file => {
-                // In a real implementation, you might need to upload files first 
-                // and get their server paths, or use File objects directly
-                return file.webkitRelativePath || file.name;
-            });
-
-            // Start processing each model
-            processModels(models, filePaths);
+            // Start processing - call the /process endpoint
+            processWithAPI(models);
         }
 
         function createProgressItem(model) {
@@ -997,46 +990,62 @@
             progressContainer.appendChild(progressItem);
         }
 
-        async function processModels(models, filePaths) {
+        async function processWithAPI(models) {
             const results = {};
 
-            for (const model of models) {
-                try {
-                    await processModel(model, filePaths, results);
-                } catch (error) {
-                    console.error(`Error processing ${model}:`, error);
-                    updateProgressStatus(model, 'error');
-                }
-            }
-
-            // Show results when all processing is complete
-            displayResults(results);
-            processBtn.disabled = false;
-        }
-
-        async function processModel(model, filePaths, results) {
-            const progressItem = document.getElementById(`progress-${model}`);
-            const statusElement = progressItem.querySelector('.progress-status');
-            const fillElement = progressItem.querySelector('.progress-fill');
-
-            // Update to processing state
-            progressItem.classList.add('processing');
-            statusElement.textContent = 'Processing';
-            statusElement.className = 'progress-status processing';
-            statusElement.innerHTML = '<span class="spinner"></span> Processing';
-
             try {
-                // Prepare the request payload
+                // Set all models to processing state initially
+                models.forEach(model => {
+                    const progressItem = document.getElementById(`progress-${model}`);
+                    const statusElement = progressItem.querySelector('.progress-status');
+                    const fillElement = progressItem.querySelector('.progress-fill');
+
+                    progressItem.classList.add('processing');
+                    statusElement.textContent = 'Processing';
+                    statusElement.className = 'progress-status processing';
+                    statusElement.innerHTML = '<span class="spinner"></span> Processing';
+                    fillElement.style.width = '25%';
+                });
+
+                // Convert file to base64 for API
+                let binaryData;
+                let filename;
+
+                if (uploadMode === 'file') {
+                    // Single file mode
+                    binaryData = await fileToBase64(selectedFiles[0]);
+                    filename = selectedFiles[0].name;
+                } else {
+                    // For folder mode, process first file (in real app, you'd handle multiple files)
+                    // For now, we'll process the first file as an example
+                    binaryData = await fileToBase64(selectedFiles[0]);
+                    filename = selectedFiles[0].name;
+                }
+
+                // Prepare the request payload for FastAPI
                 const payload = {
-                    model: model,
-                    files: uploadMode === 'file' ? filePaths[0] : filePaths
+                    binary_data: binaryData,
+                    filename: filename,
+                    models: models,
+                    output_path: `./ocr_results/${Date.now()}`
                 };
 
-                // Update progress to 25%
-                fillElement.style.width = '25%';
+                // Log API request details for debugging
+                console.log('🚀 Sending request to /process endpoint:', {
+                    filename: payload.filename,
+                    models: payload.models,
+                    output_path: payload.output_path,
+                    data_size: `${Math.round(payload.binary_data.length / 1024)}KB`
+                });
 
-                // Make API call to /process endpoint
-                const response = await fetch('/process', {
+                // Update progress to 50% for all models
+                models.forEach(model => {
+                    const fillElement = document.getElementById(`progress-${model}`).querySelector('.progress-fill');
+                    fillElement.style.width = '50%';
+                });
+
+                // Make API call to FastAPI endpoint
+                const response = await fetch('http://localhost:8000/process', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1044,87 +1053,133 @@
                     body: JSON.stringify(payload)
                 });
 
-                // Update progress to 50%
-                fillElement.style.width = '50%';
+                // Update progress to 75% for all models
+                models.forEach(model => {
+                    const fillElement = document.getElementById(`progress-${model}`).querySelector('.progress-fill');
+                    fillElement.style.width = '75%';
+                });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`HTTP ${response.status}: ${errorData.detail || response.statusText}`);
                 }
 
-                const result = await response.json();
+                const apiResponse = await response.json();
 
-                // Update progress to 75%
-                fillElement.style.width = '75%';
+                // Log API response for debugging
+                console.log('📥 Received response from /process endpoint:', {
+                    request_id: apiResponse.request_id,
+                    total_models: apiResponse.total_models,
+                    successful_models: apiResponse.successful_models,
+                    results: apiResponse.results.map(r => ({
+                        model: r.model,
+                        success: r.success,
+                        text_length: r.text ? r.text.length : 0,
+                        confidence: r.confidence,
+                        error: r.error_message
+                    }))
+                });
 
-                // Simulate final processing
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Update progress to 100% and process results
+                models.forEach(model => {
+                    const progressItem = document.getElementById(`progress-${model}`);
+                    const statusElement = progressItem.querySelector('.progress-status');
+                    const fillElement = progressItem.querySelector('.progress-fill');
 
-                // Complete progress
-                fillElement.style.width = '100%';
+                    fillElement.style.width = '100%';
 
-                // Complete processing
-                progressItem.classList.remove('processing');
-                progressItem.classList.add('completed');
-                statusElement.textContent = 'Completed';
-                statusElement.className = 'progress-status completed';
-                statusElement.innerHTML = '✅ Completed';
+                    // Find result for this model
+                    const modelResult = apiResponse.results.find(r => r.model === model);
 
-                // Store results
-                results[model] = result;
+                    if (modelResult && modelResult.success) {
+                        // Success
+                        progressItem.classList.remove('processing');
+                        progressItem.classList.add('completed');
+                        statusElement.textContent = 'Completed';
+                        statusElement.className = 'progress-status completed';
+                        statusElement.innerHTML = '✅ Completed';
+
+                        // Store results in expected format
+                        results[model] = {
+                            text: modelResult.text,
+                            confidence: modelResult.confidence,
+                            processingTime: modelResult.processing_time,
+                            detectedLanguage: 'en', // Could be extracted from metadata
+                            metadata: modelResult.metadata
+                        };
+                    } else {
+                        // Error
+                        progressItem.classList.remove('processing');
+                        progressItem.classList.add('error');
+                        statusElement.textContent = 'Error';
+                        statusElement.className = 'progress-status error';
+                        statusElement.innerHTML = '❌ Error';
+
+                        results[model] = {
+                            error: true,
+                            message: modelResult ? modelResult.error_message : 'Model result not found',
+                            text: 'Processing failed',
+                            confidence: 0,
+                            processingTime: '0s'
+                        };
+                    }
+                });
 
             } catch (error) {
-                console.error(`Error processing ${model}:`, error);
+                console.error('Error calling /process endpoint:', error);
 
-                // Update to error state
-                progressItem.classList.remove('processing');
-                progressItem.classList.add('error');
-                statusElement.textContent = 'Error';
-                statusElement.className = 'progress-status error';
-                statusElement.innerHTML = '❌ Error';
+                // Check if it's a connection error
+                let errorMessage = error.message;
+                if (error.message.includes('Failed to fetch') || error.message.includes('Network request failed')) {
+                    errorMessage = 'Cannot connect to API server. Make sure the FastAPI server is running on http://localhost:8000';
 
-                // Store error result
-                results[model] = {
-                    error: true,
-                    message: error.message,
-                    text: 'Processing failed',
-                    confidence: 0,
-                    processingTime: '0s'
-                };
-            }
-        }
+                    // Show user-friendly error message
+                    showError('⚠️ API Server Not Running\n\nPlease start the FastAPI server:\n1. Open terminal\n2. Run: python start_api_server.py\n3. Wait for "Server running on http://localhost:8000"\n4. Try again');
+                }
 
-        function updateProgressStatus(model, status) {
-            const progressItem = document.getElementById(`progress-${model}`);
-            const statusElement = progressItem.querySelector('.progress-status');
+                // Set all models to error state
+                models.forEach(model => {
+                    const progressItem = document.getElementById(`progress-${model}`);
+                    const statusElement = progressItem.querySelector('.progress-status');
 
-            progressItem.className = `progress-item ${status}`;
-            statusElement.className = `progress-status ${status}`;
-
-            switch (status) {
-                case 'error':
+                    progressItem.classList.remove('processing');
+                    progressItem.classList.add('error');
+                    statusElement.textContent = 'Error';
+                    statusElement.className = 'progress-status error';
                     statusElement.innerHTML = '❌ Error';
-                    break;
-                case 'completed':
-                    statusElement.innerHTML = '✅ Completed';
-                    break;
+
+                    results[model] = {
+                        error: true,
+                        message: errorMessage,
+                        text: 'Processing failed',
+                        confidence: 0,
+                        processingTime: '0s'
+                    };
+                });
             }
+
+            // Show results when all processing is complete
+            displayResults(results);
+            processBtn.disabled = false;
         }
 
-        function generateMockResult(model) {
-            const mockTexts = [
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-                "Sample text extracted from the image using OCR technology.",
-                "This is a demonstration of text recognition capabilities.",
-                "OCR processing completed successfully with high accuracy."
-            ];
-
-            return {
-                text: mockTexts[Math.floor(Math.random() * mockTexts.length)],
-                confidence: 0.85 + Math.random() * 0.14,
-                processingTime: (1 + Math.random() * 3).toFixed(2) + 's',
-                detectedLanguage: 'en'
-            };
+        // Helper function to convert File to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Remove the data URL prefix (data:image/jpeg;base64,)
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
+
+
+
+
 
         function displayResults(results) {
             resultsSection.classList.add('active');
@@ -1232,12 +1287,84 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // Check API server connectivity
+        async function checkAPIConnection() {
+            try {
+                const response = await fetch('http://localhost:8000/health', {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                });
+
+                if (response.ok) {
+                    console.log('✅ API server is running and accessible');
+                    const health = await response.json();
+                    console.log('📊 API Status:', health);
+
+                    // Show success message briefly
+                    const successMsg = document.createElement('div');
+                    successMsg.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #d4edda;
+                        color: #155724;
+                        padding: 15px 20px;
+                        border-radius: 8px;
+                        border-left: 4px solid #28a745;
+                        z-index: 1000;
+                        font-weight: 500;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    `;
+                    successMsg.textContent = '✅ API Server Connected';
+                    document.body.appendChild(successMsg);
+
+                    setTimeout(() => successMsg.remove(), 3000);
+                } else {
+                    throw new Error(`Server responded with status ${response.status}`);
+                }
+            } catch (error) {
+                console.warn('⚠️ API server not accessible:', error.message);
+
+                // Show warning message
+                const warningMsg = document.createElement('div');
+                warningMsg.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #fff3cd;
+                    color: #856404;
+                    padding: 15px 20px;
+                    border-radius: 8px;
+                    border-left: 4px solid #ffc107;
+                    z-index: 1000;
+                    font-weight: 500;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    max-width: 300px;
+                    line-height: 1.4;
+                `;
+                warningMsg.innerHTML = `
+                    ⚠️ API Server Not Running<br>
+                    <small>Start server: <code>python start_api_server.py</code></small>
+                `;
+                document.body.appendChild(warningMsg);
+
+                // Auto-remove after 5 seconds, or click to dismiss
+                const removeWarning = () => warningMsg.remove();
+                setTimeout(removeWarning, 8000);
+                warningMsg.addEventListener('click', removeWarning);
+                warningMsg.style.cursor = 'pointer';
+            }
+        }
+
         // Initialize
         document.querySelectorAll('.model-card').forEach(card => {
             card.classList.add('selected');
         });
         updateSelectionCount();
         updateProcessButton();
+
+        // Check API connectivity when page loads
+        checkAPIConnection();
     </script>
 </body>
 

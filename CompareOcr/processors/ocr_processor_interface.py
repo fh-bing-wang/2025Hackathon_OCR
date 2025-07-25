@@ -31,21 +31,21 @@ class OCRProcessorInterface(ABC):
         """
         pass
 
-    @abstractmethod
-    def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
-        """
-        Read a JSON file containing OCR results and normalize the data structure.
+    # @abstractmethod
+    # def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
+    #     """
+    #     Read a JSON file containing OCR results and normalize the data structure.
         
-        Args:
-            json_filename (str): Path to the JSON file containing OCR results
+    #     Args:
+    #         json_filename (str): Path to the JSON file containing OCR results
             
-        Returns:
-            Dict[str, Any]: Normalized JSON object with standardized structure
-                           containing text, confidence, coordinates, and metadata.
+    #     Returns:
+    #         Dict[str, Any]: Normalized JSON object with standardized structure
+    #                        containing text, confidence, coordinates, and metadata.
                            
-        Raises:
-            FileNotFoundError: If the JSON file doesn't exist
-            ValueError: If the JSON file is malformed or has invalid structure
-            IOError: If unable to read the file
-        """
-        pass 
+    #     Raises:
+    #         FileNotFoundError: If the JSON file doesn't exist
+    #         ValueError: If the JSON file is malformed or has invalid structure
+    #         IOError: If unable to read the file
+    #     """
+    #     pass 

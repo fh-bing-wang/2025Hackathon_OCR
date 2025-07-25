@@ -1,17 +1,14 @@
 import os
 import json
 import io
-import tempfile
 from datetime import datetime
 from pathlib import Path
+import tempfile
 from typing import Dict, Any, Optional
 from PIL import Image
-import PaddleOCR
+from paddleocr import PaddleOCR
 
-from Helper.PaddleOcrNormalizer import PaddleOcrNormalizer
-
-# Import or define OCRProcessorInterface
-from CompareOcr.processors.ocr_processor_interface import OCRProcessorInterface
+from processors.ocr_processor_interface import OCRProcessorInterface
 
 class PaddleOcrProcessor(OCRProcessorInterface):
     """
@@ -35,13 +32,13 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             use_textline_orientation (bool): Whether to use text line orientation
             lang (str): Language for OCR recognition (default: 'en')
         """
-        self.ocr = PaddleOCR.PaddleOCR(
+        self.ocr = PaddleOCR(
             use_doc_orientation_classify=use_doc_orientation_classify,
             use_doc_unwarping=use_doc_unwarping,
             use_textline_orientation=use_textline_orientation,
             lang=lang
         )
-        self.normalizer = PaddleOcrNormalizer()
+        # self.normalizer = PaddleOcrNormalizer()
 
     def process_binary_data(self, 
                           binary_data: bytes, 
@@ -69,7 +66,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
 
         # Set default output path
         if output_path is None:
-            output_path = "./results"
+            output_path = "../results/paddle_ocr_results"
         
         # Create output directory if it doesn't exist
         Path(output_path).mkdir(parents=True, exist_ok=True)
@@ -82,17 +79,13 @@ class PaddleOcrProcessor(OCRProcessorInterface):
         try:
             # Convert binary data to image
             image = Image.open(io.BytesIO(binary_data))
-            
-            # Create temporary file for PaddleOCR processing
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
                 image.save(temp_file.name, 'PNG')
                 temp_image_path = temp_file.name
-
+            
             # Process with PaddleOCR
             results = self.ocr.predict(temp_image_path)
-
-            # Clean up temporary file
-            os.unlink(temp_image_path)
+            print(f"Output length: {len(results)}:")
 
             if not results:
                 raise RuntimeError("PaddleOCR returned no results")
@@ -107,16 +100,17 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             }
 
             for page_idx, result in enumerate(results):
+                result.print()
                 # Save individual result files
-                result_filename = f"{filename}_page_{page_idx}"
+                result_filename = f"{filename}_{page_idx}"
                 
                 # Save as image with annotations
-                image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result.png")
-                result.save_to_img(output_path, result_filename + "_ocr_result")
+                image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result_img")
+                result.save_to_img(image_output_path)
                 
                 # Save as JSON
-                json_output_path = os.path.join(output_path, f"{result_filename}_result.json")
-                result.save_to_json(output_path, result_filename + "_result")
+                json_output_path = os.path.join(output_path, f"{result_filename}_result_json")
+                result.save_to_json(json_output_path)
                 
                 # Extract text and confidence data
                 page_result = {
@@ -154,51 +148,51 @@ class PaddleOcrProcessor(OCRProcessorInterface):
         except Exception as e:
             raise RuntimeError(f"Failed to process binary data with PaddleOCR: {str(e)}")
 
-    def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
-        """
-        Read a JSON file containing PaddleOCR results and normalize the data structure.
+    # def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
+    #     """
+    #     Read a JSON file containing PaddleOCR results and normalize the data structure.
         
-        Args:
-            json_filename (str): Path to the JSON file containing OCR results
+    #     Args:
+    #         json_filename (str): Path to the JSON file containing OCR results
             
-        Returns:
-            Dict[str, Any]: Normalized JSON object with standardized structure
-                           containing text, confidence, coordinates, and metadata.
+    #     Returns:
+    #         Dict[str, Any]: Normalized JSON object with standardized structure
+    #                        containing text, confidence, coordinates, and metadata.
                            
-        Raises:
-            FileNotFoundError: If the JSON file doesn't exist
-            ValueError: If the JSON file is malformed or has invalid structure
-            IOError: If unable to read the file
-        """
-        if not os.path.exists(json_filename):
-            raise FileNotFoundError(f"JSON file not found: {json_filename}")
+    #     Raises:
+    #         FileNotFoundError: If the JSON file doesn't exist
+    #         ValueError: If the JSON file is malformed or has invalid structure
+    #         IOError: If unable to read the file
+    #     """
+    #     if not os.path.exists(json_filename):
+    #         raise FileNotFoundError(f"JSON file not found: {json_filename}")
 
-        try:
-            with open(json_filename, 'r', encoding='utf-8') as f:
-                raw_result = json.load(f)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON format in file {json_filename}: {str(e)}")
-        except IOError as e:
-            raise IOError(f"Unable to read file {json_filename}: {str(e)}")
+    #     try:
+    #         with open(json_filename, 'r', encoding='utf-8') as f:
+    #             raw_result = json.load(f)
+    #     except json.JSONDecodeError as e:
+    #         raise ValueError(f"Invalid JSON format in file {json_filename}: {str(e)}")
+    #     except IOError as e:
+    #         raise IOError(f"Unable to read file {json_filename}: {str(e)}")
 
-        try:
-            # Use the existing normalizer
-            normalized_data = self.normalizer.normalize(raw_result)
+    #     try:
+    #         # Use the existing normalizer
+    #         normalized_data = self.normalizer.normalize(raw_result)
             
-            # Add additional metadata
-            normalized_result = {
-                "source_file": json_filename,
-                "normalized_timestamp": datetime.now().isoformat(),
-                "total_text_blocks": len(normalized_data),
-                "data": normalized_data,
-                "full_text": " ".join([item.get("text", "") for item in normalized_data]),
-                "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
-            }
+    #         # Add additional metadata
+    #         normalized_result = {
+    #             "source_file": json_filename,
+    #             "normalized_timestamp": datetime.now().isoformat(),
+    #             "total_text_blocks": len(normalized_data),
+    #             "data": normalized_data,
+    #             "full_text": " ".join([item.get("text", "") for item in normalized_data]),
+    #             "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
+    #         }
 
-            return normalized_result
+    #         return normalized_result
 
-        except Exception as e:
-            raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")
+    #     except Exception as e:
+    #         raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")
 
     def _extract_text_data(self, result) -> list:
         """Extract text data from PaddleOCR result object."""
