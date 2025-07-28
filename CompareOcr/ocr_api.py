@@ -218,7 +218,7 @@ async def process_images(request: OCRRequest):
             )
         
         # Set output path
-        output_path = request.output_path or f"./ocr_results/{request_id}"
+        output_path = request.output_path or f"./html_pages/ocr_results/{request_id}"
         os.makedirs(output_path, exist_ok=True)
         
         # Process with each requested model

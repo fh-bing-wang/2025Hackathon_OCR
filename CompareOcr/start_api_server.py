@@ -78,7 +78,7 @@ def print_startup_info(host="0.0.0.0", port=8000):
     print("  • Supported Models: paddle, easy, tesseract, yomitoku")
     print("  • Currently Implemented: paddle (PaddleOCR)")
     print("  • CORS enabled for web frontends")
-    print("  • Results saved to: ./ocr_results/")
+    print("  • Results saved to: ./html_pages/ocr_results/")
     print()
     print("Press Ctrl+C to stop the server")
     print("=" * 60)
@@ -104,7 +104,7 @@ def main():
     print_startup_info(host, port)
     
     # Create results directory
-    os.makedirs("ocr_results", exist_ok=True)
+    os.makedirs("./html_pages/ocr_results", exist_ok=True)
     
     try:
         # Import and run the FastAPI app

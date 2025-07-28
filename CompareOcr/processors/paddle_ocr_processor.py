@@ -66,7 +66,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
 
         # Set default output path
         if output_path is None:
-            output_path = "../results/paddle_ocr_results"
+            output_path = "../html_pages/results/paddle_ocr_results"
         
         # Create output directory if it doesn't exist
         Path(output_path).mkdir(parents=True, exist_ok=True)
