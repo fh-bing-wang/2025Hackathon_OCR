@@ -12,3 +12,5 @@ python3 -m http.server 8888
 
 port forward 8888
 
+# Access
+http://bing-gpu-01.dev.flatiron.co.jp:8888/html_pages/ocr_viewer.html

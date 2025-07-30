@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Panel Image Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .panel-indicator {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #ecf0f1;
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .upload-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .upload-btn:hover {
+            background: #2980b9;
+        }
+
+        .panels-container {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-panel {
+            flex: 1;
+            min-width: 200px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-right: 1px solid #ddd;
+            position: relative;
+        }
+
+        .image-panel:last-child {
+            border-right: none;
+        }
+
+        .panel-header {
+            background: #ecf0f1;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .panel-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .control-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .zoom-info {
+            background: #34495e;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .image-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-wrapper {
+            max-width: 100%;
+            max-height: 100%;
+            transform-origin: center center;
+            transition: transform 0.3s ease;
+        }
+
+        .image-display {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-panel {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #95a5a6;
+            font-size: 18px;
+            background: #fafafa;
+            border: 2px dashed #ddd;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        .resize-handle {
+            width: 8px;
+            background: #bdc3c7;
+            cursor: col-resize;
+            position: relative;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+
+        .resize-handle:hover {
+            background: #95a5a6;
+        }
+
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 3px;
+            height: 30px;
+            background: #7f8c8d;
+            border-radius: 2px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .close-btn {
+            background: #e74c3c !important;
+        }
+
+        .close-btn:hover {
+            background: #c0392b !important;
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+            width: 100vw;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .welcome-message h2 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.2em;
+            }
+
+            .upload-btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+
+            .panel-indicator {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+
+            .header-left {
+                gap: 15px;
+            }
+
+            .image-panel {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>Multi-Panel Image Viewer</h1>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                ➕ Add Image
+            </button>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <div class="panel-indicator" id="panelIndicator" style="display: none;">
+            Panel 1 of 1
+        </div>
+    </div>
+
+    <div class="panels-container" id="panelsContainer">
+        <div class="welcome-message">
+            <h2>Welcome to Multi-Panel Image Viewer</h2>
+            <p>Click "Add Image" to get started. Each image will appear in its own resizable panel.</p>
+            <p>Use zoom controls to enlarge or shrink images, and drag the handles between panels to resize them.</p>
+        </div>
+    </div>
+
+    <script>
+        let panelCounter = 0;
+        let panels = [];
+
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Clear welcome message if it exists
+            const welcome = document.querySelector('.welcome-message');
+            if (welcome) {
+                welcome.remove();
+            }
+
+            if (file.type.startsWith('image/')) {
+                createImagePanel(file);
+            }
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        function createImagePanel(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const panelId = `panel-${++panelCounter}`;
+                const panel = createPanelElement(panelId, file.name, e.target.result);
+
+                const container = document.getElementById('panelsContainer');
+
+                // Add resize handle if there are existing panels
+                if (panels.length > 0) {
+                    const resizeHandle = document.createElement('div');
+                    resizeHandle.className = 'resize-handle';
+                    resizeHandle.addEventListener('mousedown', initResize);
+                    container.appendChild(resizeHandle);
+                }
+
+                container.appendChild(panel);
+                panels.push({ id: panelId, element: panel, zoom: 1 });
+
+                // Update panel indicator
+                updatePanelIndicator();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function createPanelElement(panelId, fileName, imageSrc) {
+            const panel = document.createElement('div');
+            panel.className = 'image-panel';
+            panel.id = panelId;
+
+            panel.innerHTML = `
+                <div class="panel-header">
+                    <span class="panel-title">${fileName}</span>
+                    <div class="panel-controls">
+                        <button class="control-btn" onclick="zoomImage('${panelId}', 0.8)" title="Zoom Out">−</button>
+                        <span class="zoom-info" id="${panelId}-zoom">100%</span>
+                        <button class="control-btn" onclick="zoomImage('${panelId}', 1.25)" title="Zoom In">+</button>
+                        <button class="control-btn" onclick="resetZoom('${panelId}')" title="Reset Zoom">⌂</button>
+                        <button class="control-btn close-btn" onclick="closePanel('${panelId}')" title="Close Panel">×</button>
+                    </div>
+                </div>
+                <div class="image-container">
+                    <div class="image-wrapper" id="${panelId}-wrapper">
+                        <img class="image-display" src="${imageSrc}" alt="${fileName}">
+                    </div>
+                </div>
+            `;
+
+            return panel;
+        }
+
+        function zoomImage(panelId, factor) {
+            const panel = panels.find(p => p.id === panelId);
+            if (!panel) return;
+
+            panel.zoom *= factor;
+            panel.zoom = Math.max(0.1, Math.min(5, panel.zoom)); // Limit zoom between 10% and 500%
+
+            const wrapper = document.getElementById(`${panelId}-wrapper`);
+            const zoomInfo = document.getElementById(`${panelId}-zoom`);
+
+            wrapper.style.transform = `scale(${panel.zoom})`;
+            zoomInfo.textContent = `${Math.round(panel.zoom * 100)}%`;
+        }
+
+        function resetZoom(panelId) {
+            const panel = panels.find(p => p.id === panelId);
+            if (!panel) return;
+
+            panel.zoom = 1;
+            const wrapper = document.getElementById(`${panelId}-wrapper`);
+            const zoomInfo = document.getElementById(`${panelId}-zoom`);
+
+            wrapper.style.transform = 'scale(1)';
+            zoomInfo.textContent = '100%';
+        }
+
+        function closePanel(panelId) {
+            const panelIndex = panels.findIndex(p => p.id === panelId);
+            if (panelIndex === -1) return;
+
+            const panel = panels[panelIndex].element;
+            const container = document.getElementById('panelsContainer');
+
+            // Remove the panel
+            panel.remove();
+
+            // Remove associated resize handle
+            const nextSibling = panel.nextElementSibling;
+            if (nextSibling && nextSibling.classList.contains('resize-handle')) {
+                nextSibling.remove();
+            } else {
+                const prevSibling = panel.previousElementSibling;
+                if (prevSibling && prevSibling.classList.contains('resize-handle')) {
+                    prevSibling.remove();
+                }
+            }
+
+            // Remove from panels array
+            panels.splice(panelIndex, 1);
+
+            // Update panel indicator
+            updatePanelIndicator();
+
+            // Show welcome message if no panels left
+            if (panels.length === 0) {
+                container.innerHTML = `
+                    <div class="welcome-message">
+                        <h2>Welcome to Multi-Panel Image Viewer</h2>
+                        <p>Click "Add Image" to get started. Each image will appear in its own resizable panel.</p>
+                        <p>Use zoom controls to enlarge or shrink images, and drag the handles between panels to resize them.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updatePanelIndicator() {
+            const indicator = document.getElementById('panelIndicator');
+            if (panels.length === 0) {
+                indicator.style.display = 'none';
+            } else {
+                indicator.style.display = 'block';
+                indicator.textContent = `Panel ${getCurrentPanelIndex() + 1} of ${panels.length}`;
+            }
+        }
+
+        function getCurrentPanelIndex() {
+            const container = document.getElementById('panelsContainer');
+            const totalPanels = panels.length;
+            if (totalPanels === 0) return 0;
+
+            // For resizable panels, calculate based on which panel is most visible
+            const containerRect = container.getBoundingClientRect();
+            const containerCenter = containerRect.left + containerRect.width / 2;
+
+            let closestIndex = 0;
+            let closestDistance = Infinity;
+
+            panels.forEach((panelData, index) => {
+                const panelRect = panelData.element.getBoundingClientRect();
+                const panelCenter = panelRect.left + panelRect.width / 2;
+                const distance = Math.abs(panelCenter - containerCenter);
+
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestIndex = index;
+                }
+            });
+
+            return closestIndex;
+        }
+
+        function initResize(e) {
+            e.preventDefault();
+
+            const handle = e.target;
+            const prevPanel = handle.previousElementSibling;
+            const nextPanel = handle.nextElementSibling;
+
+            if (!prevPanel || !nextPanel ||
+                !prevPanel.classList.contains('image-panel') ||
+                !nextPanel.classList.contains('image-panel')) {
+                return;
+            }
+
+            const startX = e.clientX;
+            const container = document.getElementById('panelsContainer');
+            const containerRect = container.getBoundingClientRect();
+
+            const startPrevWidth = prevPanel.offsetWidth;
+            const startNextWidth = nextPanel.offsetWidth;
+
+            function doResize(e) {
+                const deltaX = e.clientX - startX;
+                const totalWidth = startPrevWidth + startNextWidth;
+
+                let newPrevWidth = startPrevWidth + deltaX;
+                let newNextWidth = startNextWidth - deltaX;
+
+                // Enforce minimum widths
+                const minWidth = 200;
+                if (newPrevWidth < minWidth) {
+                    newPrevWidth = minWidth;
+                    newNextWidth = totalWidth - minWidth;
+                }
+                if (newNextWidth < minWidth) {
+                    newNextWidth = minWidth;
+                    newPrevWidth = totalWidth - minWidth;
+                }
+
+                const prevFlex = newPrevWidth / totalWidth;
+                const nextFlex = newNextWidth / totalWidth;
+
+                prevPanel.style.flex = `${prevFlex} 1 0px`;
+                nextPanel.style.flex = `${nextFlex} 1 0px`;
+
+                // Update panel indicator during resize
+                updatePanelIndicator();
+            }
+
+            function stopResize() {
+                document.removeEventListener('mousemove', doResize);
+                document.removeEventListener('mouseup', stopResize);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+
+            document.addEventListener('mousemove', doResize);
+            document.addEventListener('mouseup', stopResize);
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        }
+
+        // Handle drag and drop
+        document.addEventListener('dragover', function (e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', function (e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+
+            if (files.length > 0) {
+                // Clear welcome message if it exists
+                const welcome = document.querySelector('.welcome-message');
+                if (welcome) {
+                    welcome.remove();
+                }
+
+                // Only process the first file
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    createImagePanel(file);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
