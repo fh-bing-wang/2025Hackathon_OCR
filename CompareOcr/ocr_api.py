@@ -73,9 +73,9 @@ class OCRProcessorFactory:
         # Configure processor based on model type
         if model_name_lower == 'paddle':
             return processor_class(
-                use_doc_orientation_classify=False,
-                use_doc_unwarping=False,
-                use_textline_orientation=False,
+                use_doc_orientation_classify=True,
+                use_doc_unwarping=True,
+                use_textline_orientation=True,
                 lang='en'
             )
         else:

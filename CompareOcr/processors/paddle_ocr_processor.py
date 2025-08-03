@@ -19,9 +19,9 @@ class PaddleOcrProcessor(OCRProcessorInterface):
     """
 
     def __init__(self, 
-                 use_doc_orientation_classify: bool = False,
-                 use_doc_unwarping: bool = False, 
-                 use_textline_orientation: bool = False,
+                 use_doc_orientation_classify: bool = True,
+                 use_doc_unwarping: bool = True, 
+                 use_textline_orientation: bool = True,
                  lang: str = 'en'):
         """
         Initialize the PaddleOCR processor.

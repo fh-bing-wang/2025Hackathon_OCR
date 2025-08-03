@@ -27,7 +27,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                  use_textline_orientation: bool = False,
                  lang: str = 'en'):
         """
-        Initialize the PaddleOCR processor.
+        Initialize the YomitokuOCR processor.
         
         Args:
             use_doc_orientation_classify (bool): Whether to use document orientation classification
@@ -35,14 +35,14 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
             use_textline_orientation (bool): Whether to use text line orientation
             lang (str): Language for OCR recognition (default: 'en')
         """
-        self.ocr = DocumentAnalyzer(visualize=True, device="cuda")
+        # self.ocr = DocumentAnalyzer(visualize=True, device="cuda")
 
-    def process_binary_data(self, 
+    async def process_binary_data(self, 
                           binary_data: bytes, 
                           output_path: str = None, 
                           filename: str = None) -> Dict[str, Any]:
         """
-        Process binary image data using PaddleOCR and save results locally.
+        Process binary image data using YomitokuOCR and save results locally.
         
         Args:
             binary_data (bytes): The binary data of the image file
@@ -63,7 +63,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
 
         # Set default output path
         if output_path is None:
-            output_path = "../html_pages/results/paddle_ocr_results"
+            output_path = "../html_pages/results/yomitoku_ocr_results"
         
         # Create output directory if it doesn't exist
         Path(output_path).mkdir(parents=True, exist_ok=True)
@@ -71,15 +71,18 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
         # Generate filename if not provided
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"paddle_ocr_result_{timestamp}"
+            filename = f"yomitoku_ocr_result_{timestamp}"
 
         try:
+            
             # Convert binary data to image
             image = Image.open(io.BytesIO(binary_data))
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
                 image.save(temp_file.name, 'PNG')
                 temp_image_path = temp_file.name
 
+            print(f"Processing image saved to temporary file: {temp_image_path}")
+            analyzer = DocumentAnalyzer(visualize=True, device="cuda")
             # Process with Yomitoku
             images = load_image(temp_image_path)
             if not images:
@@ -98,13 +101,16 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 # Save individual result files
                 result_filename = f"{filename}_{i}"
                 
+                print(f"Processing page {i+1}/{len(images)}: {result_filename}")
                 # Save as image with annotations
                 image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result_img")
-                
-                results, ocr_vis, layout_vis = self.ocr(img)
+
+                results, ocr_vis, layout_vis = await analyzer(img)
+                print(f"Result page {i+1}/{len(images)}: {result_filename}")
 
                 # HTML形式で解析結果をエクスポート
                 results.to_html(f"{image_output_path}_{i}.html", img=img)
+                results.to_json(f"{image_output_path}_{i}.json", img=img)
 
                 # 可視化画像を保存
                 cv2.imwrite(f"{image_output_path}_{i}.jpg", ocr_vis)
@@ -132,11 +138,11 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
             return summary_result
 
         except Exception as e:
-            raise RuntimeError(f"Failed to process binary data with PaddleOCR: {str(e)}")
+            raise RuntimeError(f"Failed to process binary data with YomitokuOCR: {str(e)}")
 
     # def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
     #     """
-    #     Read a JSON file containing PaddleOCR results and normalize the data structure.
+    #     Read a JSON file containing YomitokuOCR results and normalize the data structure.
         
     #     Args:
     #         json_filename (str): Path to the JSON file containing OCR results
@@ -181,7 +187,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
     #         raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")
 
     def _extract_text_data(self, result) -> list:
-        """Extract text data from PaddleOCR result object."""
+        """Extract text data from YomitokuOCR result object."""
         text_data = []
         if hasattr(result, 'rec_texts') and hasattr(result, 'rec_scores') and hasattr(result, 'dt_polys'):
             for i, text in enumerate(result.rec_texts):
@@ -193,13 +199,13 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
         return text_data
 
     def _extract_full_text(self, result) -> str:
-        """Extract all text as a single string from PaddleOCR result."""
+        """Extract all text as a single string from YomitokuOCR result."""
         if hasattr(result, 'rec_texts'):
             return " ".join(result.rec_texts)
         return ""
 
     def _calculate_average_confidence(self, result) -> float:
-        """Calculate average confidence score from PaddleOCR result."""
+        """Calculate average confidence score from YomitokuOCR result."""
         if hasattr(result, 'rec_scores') and result.rec_scores:
             return sum(result.rec_scores) / len(result.rec_scores)
         return 0.0
@@ -217,9 +223,9 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
         return ['PNG', 'JPG', 'JPEG', 'BMP', 'TIFF', 'GIF']
 
     def get_model_info(self) -> Dict[str, Any]:
-        """Return information about the PaddleOCR model configuration."""
+        """Return information about the YomitokuOCR model configuration."""
         return {
-            "model_name": "PaddleOCR",
+            "model_name": "YomitokuOCR",
             "version": "2.x",
             "supported_languages": ["en", "ch", "fr", "german", "korean", "japan"],
             "features": {

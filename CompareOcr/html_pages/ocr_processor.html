@@ -658,7 +658,7 @@
                         <div class="model-description">PaddlePaddle's multilingual OCR engine with high accuracy</div>
                     </div>
 
-                    <div class="model-card" data-model="easy">
+                    <!-- <div class="model-card" data-model="easy">
                         <input type="checkbox" class="model-checkbox" id="easy" checked>
                         <div class="model-icon">⚡</div>
                         <div class="model-name">Easy OCR</div>
@@ -671,14 +671,14 @@
                         <div class="model-name">Tesseract</div>
                         <div class="model-description">Google's open-source OCR engine with excellent text recognition
                         </div>
-                    </div>
+                    </div> -->
 
-                    <div class="model-card" data-model="yomitoku">
+                    <!-- <div class="model-card" data-model="yomitoku">
                         <input type="checkbox" class="model-checkbox" id="yomitoku" checked>
                         <div class="model-icon">🈯</div>
                         <div class="model-name">YomiToku</div>
                         <div class="model-description">Specialized OCR for Japanese text and documents</div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 
@@ -720,7 +720,7 @@
         // Global variables
         let selectedFiles = [];
         let uploadMode = 'file'; // 'file' or 'folder'
-        let selectedModels = new Set(['paddle', 'easy', 'tesseract', 'yomitoku']);
+        let selectedModels = new Set(['paddle']);
 
         // DOM elements
         const fileInput = document.getElementById('fileInput');
