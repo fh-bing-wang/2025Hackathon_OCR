@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import io
@@ -37,7 +38,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
         """
         # self.ocr = DocumentAnalyzer(visualize=True, device="cuda")
 
-    async def process_binary_data(self, 
+    def process_binary_data(self, 
                           binary_data: bytes, 
                           output_path: str = None, 
                           filename: str = None) -> Dict[str, Any]:
@@ -105,7 +106,9 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 # Save as image with annotations
                 image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result_img")
 
-                results, ocr_vis, layout_vis = await analyzer(img)
+                loop = asyncio.get_event_loop()
+                results, ocr_vis, layout_vis = loop.run_until_complete(analyzer(img))
+                # results, ocr_vis, layout_vis = analyzer(img)
                 print(f"Result page {i+1}/{len(images)}: {result_filename}")
 
                 # HTML形式で解析結果をエクスポート
@@ -121,6 +124,8 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 "success": True,
                 "metadata": processing_metadata,
                 "pages": all_results,
+                "combined_text": " ",
+                "overall_confidence": 0.0,
                 # "combined_text": " ".join([page["full_text"] for page in all_results]),
                 # "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {

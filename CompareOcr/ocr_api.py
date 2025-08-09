@@ -7,6 +7,7 @@ Supports binary data upload and multiple model selection.
 """
 
 from abc import ABC, abstractmethod
+import asyncio
 import os
 import base64
 import traceback
@@ -19,6 +20,10 @@ from pydantic import BaseModel, Field
 from processors.paddle_ocr_processor import PaddleOcrProcessor
 from processors.yomitoku_ocr_processor import YomitokuOcrProcessor
 from processors.ocr_processor_interface import OCRProcessorInterface
+
+import cv2
+from yomitoku import DocumentAnalyzer
+from yomitoku.data.functions import load_image
     
 # Pydantic models for request/response
 class OCRRequest(BaseModel):
@@ -172,6 +177,36 @@ async def get_supported_models():
         }
     }
 
+@app.get("/run_yomitoku")
+async def run_yomitoku():
+    """
+    Run YomiToku OCR on a sample image.
+    """
+    file_name = "03_pathological_report.jpg"
+    input_file = f"../TestFiles/{file_name}"
+
+    analyzer = DocumentAnalyzer(visualize=True, device="cuda")
+
+    # PDFファイルを読み込み
+
+    imgs = load_image(input_file)
+    i = 0
+    img = imgs[0]  # Assuming we only want to process the first image for this example
+    loop = asyncio.get_running_loop()
+    results, ocr_vis, layout_vis = await loop.run_in_executor(None, analyzer, img)
+
+    # HTML形式で解析結果をエクスポート
+    results.to_html(f"output_{i}.html", img=img)
+    # for i, img in enumerate(imgs):
+    #     results, ocr_vis, layout_vis = await analyzer(img)
+
+    #     # HTML形式で解析結果をエクスポート
+    #     results.to_html(f"output_{i}.html", img=img)
+
+        # 可視化画像を保存
+        # cv2.imwrite(f"output_ocr_{i}.jpg", ocr_vis)
+        # cv2.imwrite(f"output_layout_{i}.jpg", layout_vis)
+
 
 @app.post("/process", response_model=OCRResponse)
 async def process_images(request: OCRRequest):
@@ -227,23 +262,40 @@ async def process_images(request: OCRRequest):
                 model_filename = f"{base_filename}_{model_name.lower()}"
                 
                 # Process binary data
-                processing_result = processor.process_binary_data(
+                # loop = asyncio.get_event_loop()
+                # loop.run_until_complete(processor.process_binary_data(
+                #     binary_data=binary_data,
+                #     output_path=output_path,
+                #     filename=model_filename
+                # ))
+                
+                processing_result = await processor.process_binary_data(
                     binary_data=binary_data,
                     output_path=output_path,
                     filename=model_filename
                 )
-                
+                # print(f"Processing result for {model_name}: {processing_result}")
+
                 # Calculate processing time
                 processing_time = str(datetime.now() - model_start_time)
                 
                 # Create result object
+                # result = OCRResult(
+                #     model=model_name,
+                #     success=True,
+                #     text=processing_result.get('combined_text', ''),
+                #     confidence=processing_result.get('overall_confidence', 0.0),
+                #     processing_time=processing_time,
+                #     metadata=processing_result.get('metadata', {})
+                # )
+
                 result = OCRResult(
                     model=model_name,
                     success=True,
-                    text=processing_result.get('combined_text', ''),
-                    confidence=processing_result.get('overall_confidence', 0.0),
+                    text="",
+                    confidence=0.0,
                     processing_time=processing_time,
-                    metadata=processing_result.get('metadata', {})
+                    metadata={}
                 )
                 
                 successful_count += 1

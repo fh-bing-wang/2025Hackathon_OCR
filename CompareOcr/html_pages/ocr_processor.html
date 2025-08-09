@@ -673,12 +673,12 @@
                         </div>
                     </div> -->
 
-                    <!-- <div class="model-card" data-model="yomitoku">
+                    <div class="model-card" data-model="yomitoku">
                         <input type="checkbox" class="model-checkbox" id="yomitoku" checked>
                         <div class="model-icon">🈯</div>
                         <div class="model-name">YomiToku</div>
                         <div class="model-description">Specialized OCR for Japanese text and documents</div>
-                    </div> -->
+                    </div>
                 </div>
             </div>
 
@@ -720,7 +720,7 @@
         // Global variables
         let selectedFiles = [];
         let uploadMode = 'file'; // 'file' or 'folder'
-        let selectedModels = new Set(['paddle']);
+        let selectedModels = new Set(['paddle', 'yomitoku']); // Default selected models
 
         // DOM elements
         const fileInput = document.getElementById('fileInput');
@@ -1176,10 +1176,6 @@
                 reader.readAsDataURL(file);
             });
         }
-
-
-
-
 
         function displayResults(results) {
             resultsSection.classList.add('active');

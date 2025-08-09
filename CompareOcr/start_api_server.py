@@ -98,7 +98,8 @@ def main():
     # Get configuration from environment
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", 8000))
-    debug = os.getenv("DEBUG", "false").lower() == "true"
+    # debug = os.getenv("DEBUG", "false").lower() == "true"
+    debug = True
     
     # Print startup information
     print_startup_info(host, port)
