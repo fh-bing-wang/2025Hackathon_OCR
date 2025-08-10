@@ -604,9 +604,9 @@
                 <div class="upload-area" onclick="triggerFileInput()">
                     <div class="upload-icon" id="uploadIcon">📄</div>
                     <div class="upload-text" id="uploadText">Click to upload or drag files here</div>
-                    <div class="upload-subtext" id="uploadSubtext">Supports PNG, JPG, JPEG image files</div>
+                    <div class="upload-subtext" id="uploadSubtext">Supports PDF, and PNG, JPG, JPEG image files</div>
                 </div>
-                <input type="file" id="fileInput" accept=".png,.jpg,.jpeg" />
+                <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.pdf" />
 
                 <div class="file-preview" id="filePreview">
                     <div id="singleFilePreview" class="single-file-preview">
@@ -624,7 +624,7 @@
                             <div class="folder-icon">📁</div>
                             <div class="folder-details">
                                 <h4 id="folderName">Selected Folder</h4>
-                                <p id="folderStats">0 image files found</p>
+                                <p id="folderStats">0 files found</p>
                             </div>
                         </div>
                         <div class="file-list" id="fileList">
@@ -759,13 +759,13 @@
                 fileInput.removeAttribute('multiple');
                 uploadIcon.textContent = '📄';
                 uploadText.textContent = 'Click to upload or drag file here';
-                uploadSubtext.textContent = 'Supports PNG, JPG, JPEG image files';
+                uploadSubtext.textContent = 'Supports PDF, and PNG, JPG, JPEG image files';
             } else {
                 fileInput.setAttribute('webkitdirectory', '');
                 fileInput.setAttribute('multiple', '');
                 uploadIcon.textContent = '📁';
                 uploadText.textContent = 'Click to select folder';
-                uploadSubtext.textContent = 'Will process all image files in the folder';
+                uploadSubtext.textContent = 'Will process all pdf and image files in the folder';
             }
 
             // Reset selection
@@ -802,22 +802,23 @@
         function handleFileSelection(files) { // Handle both single and folder uploads
             if (!files || files.length === 0) return;
 
-            const imageFiles = Array.from(files).filter(file =>
+            // change image files
+            const currentFiles = Array.from(files).filter(file =>
                 file.type.startsWith('image/') &&
-                /\.(png|jpg|jpeg)$/i.test(file.name)
+                /\.(png|jpg|jpeg)$/i.test(file.name) || file.type.startsWith('application/pdf')
             );
 
-            if (imageFiles.length === 0) {
+            if (currentFiles.length === 0) {
                 showError('No valid image files found. Please select PNG, JPG, or JPEG files.');
                 return;
             }
 
-            selectedFiles = imageFiles;
+            selectedFiles = currentFiles;
 
             if (uploadMode === 'file') {
-                displaySingleFilePreview(imageFiles[0]);
+                displaySingleFilePreview(selectedFiles[0]);
             } else {
-                displayFolderPreview(imageFiles);
+                displayFolderPreview(selectedFiles);
             }
 
             filePreview.classList.add('active');
@@ -826,7 +827,7 @@
 
         function displaySingleFilePreview(file) {
             fileName.textContent = file.name;
-            fileSize.textContent = `${formatFileSize(file.size)} • Image`;
+            fileSize.textContent = file.type === 'application/pdf' ? `${formatFileSize(file.size)} • PDF` : `${formatFileSize(file.size)} • Image`;
             singleFilePreview.style.display = 'block';
             folderPreview.style.display = 'none';
         }
@@ -1010,22 +1011,26 @@
                 // Convert file to base64 for API
                 let binaryData;
                 let filename;
+                let fileType;
 
                 if (uploadMode === 'file') {
                     // Single file mode
                     binaryData = await fileToBase64(selectedFiles[0]);
                     filename = selectedFiles[0].name;
+                    fileType = selectedFiles[0].type;
                 } else {
                     // For folder mode, process first file (in real app, you'd handle multiple files)
                     // For now, we'll process the first file as an example
                     binaryData = await fileToBase64(selectedFiles[0]);
                     filename = selectedFiles[0].name;
+                    fileType = selectedFiles[0].type;
                 }
 
                 // Prepare the request payload for FastAPI
                 const payload = {
                     binary_data: binaryData,
                     filename: filename,
+                    fileType: fileType,
                     models: models,
                     output_path: `./html_pages/ocr_results/${Date.now()}`
                 };
