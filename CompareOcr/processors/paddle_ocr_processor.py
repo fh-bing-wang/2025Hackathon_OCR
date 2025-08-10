@@ -81,7 +81,6 @@ class PaddleOcrProcessor(OCRProcessorInterface):
 
         try:
             # Convert binary data to image
-            # image = Image.open(io.BytesIO(binary_data))
             suffix = file_type == 'application/pdf' and '.pdf' or '.png'
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
                 temp_file.write(binary_data)

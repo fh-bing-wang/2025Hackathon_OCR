@@ -10,7 +10,7 @@ from PIL import Image
 from yomitoku import DocumentAnalyzer
 import cv2
 
-from yomitoku.data.functions import load_image
+from yomitoku.data.functions import load_image, load_pdf
 
 from processors.ocr_processor_interface import OCRProcessorInterface
 
@@ -41,7 +41,9 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
     async def process_binary_data(self, 
                           binary_data: bytes, 
                           output_path: str = None, 
-                          filename: str = None) -> Dict[str, Any]:
+                          file_name: str = None,
+                          file_type: str = None
+                          ) -> Dict[str, Any]:
         """
         Process binary image data using YomitokuOCR and save results locally.
         
@@ -72,22 +74,21 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
         Path(output_path).mkdir(parents=True, exist_ok=True)
 
         # Generate filename if not provided
-        if filename is None:
+        if file_name is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = timestamp
+            file_name = timestamp
 
         try:
-            
             # Convert binary data to image
-            image = Image.open(io.BytesIO(binary_data))
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                image.save(temp_file.name, 'PNG')
-                temp_image_path = temp_file.name
+            suffix = file_type == 'application/pdf' and '.pdf' or '.png'
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                temp_file.write(binary_data)
+                temp_path = temp_file.name
 
-            print(f"Processing image saved to temporary file: {temp_image_path}")
-            
+            print(f"Processing image saved to temporary file: {temp_path}")
+
             # Process with Yomitoku
-            images = load_image(temp_image_path)
+            images = file_type == 'application/pdf' and load_pdf(temp_path) or load_image(temp_path)
             if not images:
                 raise RuntimeError("Yomitoku returned no images")
 
@@ -96,13 +97,13 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
             processing_metadata = {
                 "timestamp": datetime.now().isoformat(),
                 "model": "Yomitoku",
-                "image_size": image.size,
+                "image_size": 0,
                 "total_pages": len(images)
             }
 
             for i, img in enumerate(images):
                 # Save individual result files
-                result_filename = f"{filename}_{i}"
+                result_filename = f"{file_name}_{i}"
                 
                 print(f"Processing page {i+1}/{len(images)}: {result_filename}")
                 # Save as image with annotations
@@ -133,12 +134,12 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 # "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
-                    "filename_prefix": filename
+                    "filename_prefix": file_name
                 }
             }
 
             # Save summary JSON
-            summary_path = os.path.join(output_path, f"{filename}_summary.json")
+            summary_path = os.path.join(output_path, f"{file_name}_summary.json")
             with open(summary_path, 'w', encoding='utf-8') as f:
                 json.dump(summary_result, f, indent=2, ensure_ascii=False)
 
