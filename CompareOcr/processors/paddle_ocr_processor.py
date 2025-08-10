@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from PIL import Image
 from paddleocr import PaddleOCR
 
+from Helper import PaddleOcrNormalizer
 from processors.ocr_processor_interface import OCRProcessorInterface
 
 class PaddleOcrProcessor(OCRProcessorInterface):
@@ -38,7 +39,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             use_textline_orientation=use_textline_orientation,
             lang=lang
         )
-        # self.normalizer = PaddleOcrNormalizer()
+        self.normalizer = PaddleOcrNormalizer()
 
     async def process_binary_data(self, 
                           binary_data: bytes, 
@@ -151,51 +152,51 @@ class PaddleOcrProcessor(OCRProcessorInterface):
         except Exception as e:
             raise RuntimeError(f"Failed to process binary data with PaddleOCR: {str(e)}")
 
-    # def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
-    #     """
-    #     Read a JSON file containing PaddleOCR results and normalize the data structure.
+    def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
+        """
+        Read a JSON file containing PaddleOCR results and normalize the data structure.
         
-    #     Args:
-    #         json_filename (str): Path to the JSON file containing OCR results
+        Args:
+            json_filename (str): Path to the JSON file containing OCR results
             
-    #     Returns:
-    #         Dict[str, Any]: Normalized JSON object with standardized structure
-    #                        containing text, confidence, coordinates, and metadata.
+        Returns:
+            Dict[str, Any]: Normalized JSON object with standardized structure
+                           containing text, confidence, coordinates, and metadata.
                            
-    #     Raises:
-    #         FileNotFoundError: If the JSON file doesn't exist
-    #         ValueError: If the JSON file is malformed or has invalid structure
-    #         IOError: If unable to read the file
-    #     """
-    #     if not os.path.exists(json_filename):
-    #         raise FileNotFoundError(f"JSON file not found: {json_filename}")
+        Raises:
+            FileNotFoundError: If the JSON file doesn't exist
+            ValueError: If the JSON file is malformed or has invalid structure
+            IOError: If unable to read the file
+        """
+        if not os.path.exists(json_filename):
+            raise FileNotFoundError(f"JSON file not found: {json_filename}")
 
-    #     try:
-    #         with open(json_filename, 'r', encoding='utf-8') as f:
-    #             raw_result = json.load(f)
-    #     except json.JSONDecodeError as e:
-    #         raise ValueError(f"Invalid JSON format in file {json_filename}: {str(e)}")
-    #     except IOError as e:
-    #         raise IOError(f"Unable to read file {json_filename}: {str(e)}")
+        try:
+            with open(json_filename, 'r', encoding='utf-8') as f:
+                raw_result = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON format in file {json_filename}: {str(e)}")
+        except IOError as e:
+            raise IOError(f"Unable to read file {json_filename}: {str(e)}")
 
-    #     try:
-    #         # Use the existing normalizer
-    #         normalized_data = self.normalizer.normalize(raw_result)
+        try:
+            # Use the existing normalizer
+            normalized_data = self.normalizer.normalize(raw_result)
             
-    #         # Add additional metadata
-    #         normalized_result = {
-    #             "source_file": json_filename,
-    #             "normalized_timestamp": datetime.now().isoformat(),
-    #             "total_text_blocks": len(normalized_data),
-    #             "data": normalized_data,
-    #             "full_text": " ".join([item.get("text", "") for item in normalized_data]),
-    #             "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
-    #         }
+            # Add additional metadata
+            normalized_result = {
+                "source_file": json_filename,
+                "normalized_timestamp": datetime.now().isoformat(),
+                "total_text_blocks": len(normalized_data),
+                "data": normalized_data,
+                "full_text": " ".join([item.get("text", "") for item in normalized_data]),
+                "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
+            }
 
-    #         return normalized_result
+            return normalized_result
 
-    #     except Exception as e:
-    #         raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")
+        except Exception as e:
+            raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")
 
     def _extract_text_data(self, result) -> list:
         """Extract text data from PaddleOCR result object."""
