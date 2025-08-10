@@ -11,7 +11,7 @@ class OCRProcessorInterface(ABC):
     """
 
     @abstractmethod
-    async def process_binary_data(self, binary_data: bytes, output_path: str = None, filename: str = None) -> Dict[str, Any]:
+    async def process_binary_data(self, binary_data: bytes, output_path: str = None, file_name: str = None, file_type: str = None) -> Dict[str, Any]:
         """
         Process binary image data using the OCR engine and save results locally.
         

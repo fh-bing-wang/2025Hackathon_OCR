@@ -30,6 +30,7 @@ class OCRRequest(BaseModel):
     """Request model for OCR processing."""
     binary_data: str = Field(..., description="Base64 encoded binary image data")
     filename: str = Field(..., description="Original filename of the image")
+    filetype: Optional[str] = Field(None, description="Type of the file (image/pdf)")
     models: List[str] = Field(..., description="List of OCR model names to use")
     output_path: Optional[str] = Field(None, description="Custom output path for results")
 
@@ -265,7 +266,8 @@ async def process_images(request: OCRRequest):
                 processing_result = await processor.process_binary_data(
                     binary_data=binary_data,
                     output_path=output_path,
-                    filename=model_filename
+                    file_name=model_filename,
+                    file_type=request.filetype
                 )
                 print(f"Processing result for {model_name}: {processing_result}")
 

@@ -43,7 +43,9 @@ class PaddleOcrProcessor(OCRProcessorInterface):
     async def process_binary_data(self, 
                           binary_data: bytes, 
                           output_path: str = None, 
-                          filename: str = None) -> Dict[str, Any]:
+                          file_name: str = None,
+                          file_type: str = None
+                          ) -> Dict[str, Any]:
         """
         Process binary image data using PaddleOCR and save results locally.
         
@@ -73,19 +75,20 @@ class PaddleOcrProcessor(OCRProcessorInterface):
         Path(output_path).mkdir(parents=True, exist_ok=True)
 
         # Generate filename if not provided
-        if filename is None:
+        if file_name is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"paddle_ocr_result_{timestamp}"
+            file_name = f"paddle_ocr_result_{timestamp}"
 
         try:
             # Convert binary data to image
-            image = Image.open(io.BytesIO(binary_data))
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
-                image.save(temp_file.name, 'PNG')
-                temp_image_path = temp_file.name
+            # image = Image.open(io.BytesIO(binary_data))
+            suffix = file_type == 'application/pdf' and '.pdf' or '.png'
+            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
+                temp_file.write(binary_data)
+                temp_path = temp_file.name
             
             # Process with PaddleOCR
-            results = self.ocr.predict(temp_image_path)
+            results = self.ocr.predict(temp_path)
             print(f"Output length: {len(results)}:")
 
             if not results:
@@ -96,14 +99,14 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             processing_metadata = {
                 "timestamp": datetime.now().isoformat(),
                 "model": "PaddleOCR",
-                "image_size": image.size,
+                "image_size": 0,
                 "total_pages": len(results)
             }
 
             for page_idx, result in enumerate(results):
                 result.print()
                 # Save individual result files
-                result_filename = f"{filename}_{page_idx}"
+                result_filename = f"{file_name}_{page_idx}"
                 
                 # Save as image with annotations
                 image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result_img")
@@ -134,12 +137,12 @@ class PaddleOcrProcessor(OCRProcessorInterface):
                 "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
-                    "filename_prefix": filename
+                    "filename_prefix": file_name
                 }
             }
 
             # Save summary JSON
-            summary_path = os.path.join(output_path, f"{filename}_summary.json")
+            summary_path = os.path.join(output_path, f"{file_name}_summary.json")
             with open(summary_path, 'w', encoding='utf-8') as f:
                 json.dump(summary_result, f, indent=2, ensure_ascii=False)
 
