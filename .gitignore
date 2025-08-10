@@ -206,3 +206,5 @@ bin/
 
 .paddle_env/
 paddle_env/
+
+ocr_results/
