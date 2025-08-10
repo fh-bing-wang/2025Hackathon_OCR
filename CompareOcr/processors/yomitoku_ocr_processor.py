@@ -36,9 +36,9 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
             use_textline_orientation (bool): Whether to use text line orientation
             lang (str): Language for OCR recognition (default: 'en')
         """
-        # self.ocr = DocumentAnalyzer(visualize=True, device="cuda")
+        self.ocr = DocumentAnalyzer(visualize=True, device="cuda")
 
-    def process_binary_data(self, 
+    async def process_binary_data(self, 
                           binary_data: bytes, 
                           output_path: str = None, 
                           filename: str = None) -> Dict[str, Any]:
@@ -83,7 +83,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 temp_image_path = temp_file.name
 
             print(f"Processing image saved to temporary file: {temp_image_path}")
-            analyzer = DocumentAnalyzer(visualize=True, device="cuda")
+            
             # Process with Yomitoku
             images = load_image(temp_image_path)
             if not images:
@@ -106,9 +106,10 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 # Save as image with annotations
                 image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result_img")
 
-                loop = asyncio.get_event_loop()
-                results, ocr_vis, layout_vis = loop.run_until_complete(analyzer(img))
-                # results, ocr_vis, layout_vis = analyzer(img)
+                # Use executor to run the synchronous DocumentAnalyzer in a thread pool
+                # This avoids the "asyncio.run() cannot be called from a running event loop" error
+                loop = asyncio.get_running_loop()
+                results, ocr_vis, layout_vis = await loop.run_in_executor(None, self.ocr, img)
                 print(f"Result page {i+1}/{len(images)}: {result_filename}")
 
                 # HTML形式で解析結果をエクスポート

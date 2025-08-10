@@ -97,7 +97,7 @@ class OCRProcessorFactory:
 class EasyOCRProcessor(OCRProcessorInterface):
     """Placeholder for EasyOCR processor."""
     
-    def process_binary_data(self, binary_data: bytes, output_path: str = None, filename: str = None) -> Dict[str, Any]:
+    async def process_binary_data(self, binary_data: bytes, output_path: str = None, filename: str = None) -> Dict[str, Any]:
         raise NotImplementedError("EasyOCR processor not yet implemented")
     
     def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
@@ -107,7 +107,7 @@ class EasyOCRProcessor(OCRProcessorInterface):
 class TesseractProcessor(OCRProcessorInterface):
     """Placeholder for Tesseract processor."""
     
-    def process_binary_data(self, binary_data: bytes, output_path: str = None, filename: str = None) -> Dict[str, Any]:
+    async def process_binary_data(self, binary_data: bytes, output_path: str = None, filename: str = None) -> Dict[str, Any]:
         raise NotImplementedError("Tesseract processor not yet implemented")
     
     def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:

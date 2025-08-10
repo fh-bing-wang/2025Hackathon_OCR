@@ -40,7 +40,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
         )
         # self.normalizer = PaddleOcrNormalizer()
 
-    def process_binary_data(self, 
+    async def process_binary_data(self, 
                           binary_data: bytes, 
                           output_path: str = None, 
                           filename: str = None) -> Dict[str, Any]:
