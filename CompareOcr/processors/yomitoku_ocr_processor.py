@@ -64,7 +64,9 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
 
         # Set default output path
         if output_path is None:
-            output_path = "../html_pages/results/yomitoku_ocr_results"
+            output_path = "../html_pages/results/"
+
+        output_path = f"{output_path}/yomitoku"
         
         # Create output directory if it doesn't exist
         Path(output_path).mkdir(parents=True, exist_ok=True)
@@ -72,7 +74,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
         # Generate filename if not provided
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"yomitoku_ocr_result_{timestamp}"
+            filename = timestamp
 
         try:
             
@@ -104,7 +106,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 
                 print(f"Processing page {i+1}/{len(images)}: {result_filename}")
                 # Save as image with annotations
-                image_output_path = os.path.join(output_path, f"{result_filename}_ocr_result_img")
+                image_output_path = os.path.join(output_path, f"{result_filename}")
 
                 # Use executor to run the synchronous DocumentAnalyzer in a thread pool
                 # This avoids the "asyncio.run() cannot be called from a running event loop" error

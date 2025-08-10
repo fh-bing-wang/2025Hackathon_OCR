@@ -262,40 +262,24 @@ async def process_images(request: OCRRequest):
                 model_filename = f"{base_filename}_{model_name.lower()}"
                 
                 # Process binary data
-                # loop = asyncio.get_event_loop()
-                # loop.run_until_complete(processor.process_binary_data(
-                #     binary_data=binary_data,
-                #     output_path=output_path,
-                #     filename=model_filename
-                # ))
-                
                 processing_result = await processor.process_binary_data(
                     binary_data=binary_data,
                     output_path=output_path,
                     filename=model_filename
                 )
-                # print(f"Processing result for {model_name}: {processing_result}")
+                print(f"Processing result for {model_name}: {processing_result}")
 
                 # Calculate processing time
                 processing_time = str(datetime.now() - model_start_time)
                 
                 # Create result object
-                # result = OCRResult(
-                #     model=model_name,
-                #     success=True,
-                #     text=processing_result.get('combined_text', ''),
-                #     confidence=processing_result.get('overall_confidence', 0.0),
-                #     processing_time=processing_time,
-                #     metadata=processing_result.get('metadata', {})
-                # )
-
                 result = OCRResult(
                     model=model_name,
                     success=True,
-                    text="",
-                    confidence=0.0,
+                    text=processing_result.get('combined_text', ''),
+                    confidence=processing_result.get('overall_confidence', 0.0),
                     processing_time=processing_time,
-                    metadata={}
+                    metadata=processing_result.get('metadata', {})
                 )
                 
                 successful_count += 1
