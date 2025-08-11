@@ -326,3 +326,25 @@ async def process_images_form(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file upload: {str(e)}")
+
+
+@app.get("/compare-results")
+async def compare_results():
+    """
+    Compare the results of different OCR models.
+    """
+    # Implement comparison logic here
+    res1 = "./html_pages/ocr_results/1754916020965/paddle/3_病理検査報告書_paddle_0_result_json/tmp8z77o5s5_0_res.json"
+    res2 = "./html_pages/ocr_results/1754916331901/yomitoku/3_病理検査報告書_yomitoku_0_0.json"
+
+    paddleProcessor = OCRProcessorFactory.create_processor('paddle')
+    yomitokuProcessor = OCRProcessorFactory.create_processor('yomitoku')
+
+    # Compare results using the processors
+    paddle_result = paddleProcessor.normalize_json_result(res1)
+    yomitoku_result = yomitokuProcessor.normalize_json_result(res2)
+
+    return {
+        "paddle": paddle_result,
+        "yomitoku": yomitoku_result
+    }

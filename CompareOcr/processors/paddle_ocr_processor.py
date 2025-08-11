@@ -8,7 +8,8 @@ from typing import Dict, Any, Optional
 from PIL import Image
 from paddleocr import PaddleOCR
 
-from result_normalizer import paddle_ocr_normalizer
+
+from result_normalizer.paddle_ocr_normalizer import PaddleOcrNormalizer
 from processors.ocr_processor_interface import OCRProcessorInterface
 
 class PaddleOcrProcessor(OCRProcessorInterface):
@@ -39,7 +40,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             use_textline_orientation=use_textline_orientation,
             lang=lang
         )
-        self.normalizer = paddle_ocr_normalizer
+        self.normalizer = PaddleOcrNormalizer
 
     async def process_binary_data(self, 
                           binary_data: bytes, 
