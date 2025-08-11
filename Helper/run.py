@@ -1,5 +1,5 @@
 import json
-from PaddleOcrNormalizer import PaddleOcrNormalizer
+from CompareOcr.result_normalizer.paddle_ocr_normalizer import PaddleOcrNormalizer
 from GoogleOcrNormalizer import GoogleOcrNormalizer
 
 def main():
