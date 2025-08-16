@@ -44,3 +44,18 @@ nvidia-smi
                                                                                          
 +-----------------------------------------------------------------------------------------+
 ```
+
+## Installation of Tesseract OCR
+```
+sudo apt install tesseract-ocr
+sudo apt install tesseract-ocr-jpn
+sudo apt install libtesseract-dev
+```
+
+```
+tesseract 03_pathological_report.jpg res \
+    -l jpn+eng \
+    --oem 1 \
+    --psm 6 \
+    json
+```
