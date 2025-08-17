@@ -47,9 +47,6 @@ for i in range(n_boxes):
         text_data.append(box_info)
 
     # Convert the list of dictionaries to a JSON string
-    
-
-    # You can then save this JSON string to a file
     with open('tesseract_output.json', 'w', encoding='utf-8') as f:
         json.dump(text_data, f, ensure_ascii=False, indent=2)
 

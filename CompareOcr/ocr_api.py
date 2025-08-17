@@ -17,6 +17,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from processors.tesseract_ocr_processor import TesseractOcrProcessor
 from processors.paddle_ocr_processor import PaddleOcrProcessor
 from processors.yomitoku_ocr_processor import YomitokuOcrProcessor
 from processors.ocr_processor_interface import OCRProcessorInterface
@@ -104,20 +105,10 @@ class EasyOCRProcessor(OCRProcessorInterface):
     def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
         raise NotImplementedError("EasyOCR processor not yet implemented")
 
-
-class TesseractProcessor(OCRProcessorInterface):
-    """Placeholder for Tesseract processor."""
-    
-    async def process_binary_data(self, binary_data: bytes, output_path: str = None, filename: str = None) -> Dict[str, Any]:
-        raise NotImplementedError("Tesseract processor not yet implemented")
-    
-    def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
-        raise NotImplementedError("Tesseract processor not yet implemented")
-
 # Register available processors
 OCRProcessorFactory.register_processor('paddle', PaddleOcrProcessor)
 OCRProcessorFactory.register_processor('easy', EasyOCRProcessor)
-OCRProcessorFactory.register_processor('tesseract', TesseractProcessor)
+OCRProcessorFactory.register_processor('tesseract', TesseractOcrProcessor)
 OCRProcessorFactory.register_processor('yomitoku', YomitokuOcrProcessor)
 
 

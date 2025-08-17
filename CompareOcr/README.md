@@ -52,6 +52,11 @@ sudo apt install tesseract-ocr-jpn
 sudo apt install libtesseract-dev
 ```
 
+Need to install poppler in order for pdf2image to work
+```
+sudo apt install  poppler-utils
+```
+
 ```
 tesseract 03_pathological_report.jpg res \
     -l jpn+eng \

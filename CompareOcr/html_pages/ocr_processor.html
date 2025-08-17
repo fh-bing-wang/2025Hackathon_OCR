@@ -663,7 +663,7 @@
                         <div class="model-icon">⚡</div>
                         <div class="model-name">Easy OCR</div>
                         <div class="model-description">Fast and easy-to-use OCR with 80+ language support</div>
-                    </div>
+                    </div> -->
 
                     <div class="model-card" data-model="tesseract">
                         <input type="checkbox" class="model-checkbox" id="tesseract" checked>
@@ -671,7 +671,7 @@
                         <div class="model-name">Tesseract</div>
                         <div class="model-description">Google's open-source OCR engine with excellent text recognition
                         </div>
-                    </div> -->
+                    </div>
 
                     <div class="model-card" data-model="yomitoku">
                         <input type="checkbox" class="model-checkbox" id="yomitoku" checked>
@@ -720,7 +720,7 @@
         // Global variables
         let selectedFiles = [];
         let uploadMode = 'file'; // 'file' or 'folder'
-        let selectedModels = new Set(['paddle', 'yomitoku']); // Default selected models
+        let selectedModels = new Set(['paddle', 'yomitoku', 'tesseract']); // Default selected models
 
         // DOM elements
         const fileInput = document.getElementById('fileInput');
