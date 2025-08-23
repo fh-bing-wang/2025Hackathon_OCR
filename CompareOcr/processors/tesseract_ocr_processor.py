@@ -86,19 +86,42 @@ class TesseractOcrProcessor(OCRProcessorInterface):
             combined_text = ""
             if file_type == 'application/pdf':
                 pages = convert_from_path(temp_path, dpi=600, fmt='png')
-            
+                all_results = []
                 for i, page in enumerate(pages):
-                    combined_text += self._process_image_data(page, output_path, f"{file_name}_{i}")
+                    text, json_data = self._process_image_data(page, output_path, f"{file_name}_{i}")
+                    combined_text += text
+
+                    # Extract text and confidence data
+                    page_result = {
+                        "page_index": i,
+                        "image_output_path":f"output_path_{i}",
+                        "json_output_path": f"output_path_{i}",
+                        "text_data": self._extract_text_data(json_data),
+                        "full_text": text,
+                        "average_confidence": self._calculate_average_confidence(json_data)
+                    }
+
+                    all_results.append(page_result)
             else:
-                combined_text += self._process_image_data(Image.open(temp_path), output_path, file_name)
-            
+                combined_text, json_data = self._process_image_data(Image.open(temp_path), output_path, file_name)
+
+                page_result = {
+                    "page_index": 0,
+                    "image_output_path": f"output_path_{i}",
+                    "json_output_path": f"output_path_{i}",
+                    "text_data": self._extract_text_data(json_data),
+                    "full_text": combined_text,
+                    "average_confidence": self._calculate_average_confidence(json_data)
+                }
+
+                all_results.append(json_data)
+
             # Process results and save
-            all_results = []
             processing_metadata = {
                 "timestamp": datetime.now().isoformat(),
                 "model": "Tesseract",
                 "image_size": 0,
-                "total_pages": 0
+                "total_pages": len(all_results)
             }
 
             # Create summary result
@@ -107,8 +130,7 @@ class TesseractOcrProcessor(OCRProcessorInterface):
                 "metadata": processing_metadata,
                 "pages": all_results,
                 "combined_text": combined_text,
-                "overall_confidence": 0.0,
-                # "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
+                "overall_rec_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
                     "filename_prefix": file_name
@@ -130,7 +152,7 @@ class TesseractOcrProcessor(OCRProcessorInterface):
         # Process the image data with Tesseract OCR
         try:
             data = self.ocr.image_to_data(image_data, output_type=pytesseract.Output.DICT, lang='jpn+eng')
-            self._text_data_to_json(data, os.path.join(output_path, f"{file_name}.json"))
+            json_data = self._text_data_to_json(data, os.path.join(output_path, f"{file_name}.json"))
             
             hocr = pytesseract.image_to_pdf_or_hocr(image_data, extension="hocr", lang='jpn+eng')
             with open(os.path.join(output_path, f"{file_name}.html"), "w+b") as f:
@@ -140,11 +162,11 @@ class TesseractOcrProcessor(OCRProcessorInterface):
             with open(os.path.join(output_path, f"{file_name}.pdf"), 'w+b') as f:
                 f.write(pdf)
 
-            return pytesseract.image_to_string(image_data, lang="jpn")
+            return pytesseract.image_to_string(image_data, lang="jpn"), json_data
         except Exception as e:
             raise RuntimeError(f"Failed to process image data with TesseractOCR: {str(e)}")
 
-    def _text_data_to_json(self, data: list, path: str) -> str:
+    def _text_data_to_json(self, data: list, path: str) -> list:
         # Process the data and structure it into a list of dictionaries for JSON
         text_data = []
         n_boxes = len(data['level'])
@@ -171,6 +193,8 @@ class TesseractOcrProcessor(OCRProcessorInterface):
         
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(text_data, f, ensure_ascii=False, indent=2)
+        
+        return text_data
 
     def normalize_json_result(self, json_filename: str) -> Dict[str, Any]:
         """
@@ -221,13 +245,13 @@ class TesseractOcrProcessor(OCRProcessorInterface):
     def _extract_text_data(self, result) -> list:
         """Extract text data from TesseractOCR result object."""
         text_data = []
-        if hasattr(result, 'rec_texts') and hasattr(result, 'rec_scores') and hasattr(result, 'dt_polys'):
-            for i, text in enumerate(result.rec_texts):
-                text_data.append({
-                    "text": text,
-                    "confidence": result.rec_scores[i] if i < len(result.rec_scores) else 0.0,
-                    "bounding_box": result.dt_polys[i].tolist() if i < len(result.dt_polys) else None
-                })
+        for text in result:
+            print(f'text in result: {text}')
+            text_data.append({
+                "text": text,
+                "confidence": text.get('confidence', 0),
+                "bounding_box": text.get('bounding_box', None)
+            })
         return text_data
 
     def _extract_full_text(self, result) -> str:
@@ -238,9 +262,10 @@ class TesseractOcrProcessor(OCRProcessorInterface):
 
     def _calculate_average_confidence(self, result) -> float:
         """Calculate average confidence score from TesseractOCR result."""
-        if hasattr(result, 'rec_scores') and result.rec_scores:
-            return sum(result.rec_scores) / len(result.rec_scores)
-        return 0.0
+        sum = 0.0
+        for res in result:
+            sum += res.get('confidence', 0.0)
+        return sum / len(result) / 100.00 if result else 0.0
 
     def _calculate_confidence_from_normalized(self, normalized_data: list) -> float:
         """Calculate average confidence from normalized data."""

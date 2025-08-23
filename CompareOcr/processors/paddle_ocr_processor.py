@@ -105,7 +105,6 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             }
 
             for page_idx, result in enumerate(results):
-                result.print()
                 # Save individual result files
                 result_filename = f"{file_name}_{page_idx}"
                 
@@ -135,7 +134,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
                 "metadata": processing_metadata,
                 "pages": all_results,
                 "combined_text": " ".join([page["full_text"] for page in all_results]),
-                "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
+                "overall_rec_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
                     "filename_prefix": file_name
