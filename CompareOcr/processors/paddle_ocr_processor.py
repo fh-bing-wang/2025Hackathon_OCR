@@ -202,25 +202,25 @@ class PaddleOcrProcessor(OCRProcessorInterface):
     def _extract_text_data(self, result) -> list:
         """Extract text data from PaddleOCR result object."""
         text_data = []
-        if hasattr(result, 'rec_texts') and hasattr(result, 'rec_scores') and hasattr(result, 'dt_polys'):
-            for i, text in enumerate(result.rec_texts):
+        if 'rec_texts' in result and 'rec_scores' in result and 'dt_polys' in result:
+            for i, text in enumerate(result['rec_texts']):
                 text_data.append({
                     "text": text,
-                    "confidence": result.rec_scores[i] if i < len(result.rec_scores) else 0.0,
-                    "bounding_box": result.dt_polys[i].tolist() if i < len(result.dt_polys) else None
+                    "confidence": result['rec_scores'][i] if i < len(result['rec_scores']) else 0.0,
+                    "bounding_box": result['dt_polys'][i].tolist() if i < len(result['dt_polys']) else None
                 })
         return text_data
 
     def _extract_full_text(self, result) -> str:
         """Extract all text as a single string from PaddleOCR result."""
-        if hasattr(result, 'rec_texts'):
-            return " ".join(result.rec_texts)
+        if 'rec_texts' in result:
+            return " ".join(result['rec_texts'])
         return ""
 
     def _calculate_average_confidence(self, result) -> float:
         """Calculate average confidence score from PaddleOCR result."""
-        if hasattr(result, 'rec_scores') and result.rec_scores:
-            return sum(result.rec_scores) / len(result.rec_scores)
+        if 'rec_scores' in result and result['rec_scores']:
+            return sum(result['rec_scores']) / len(result['rec_scores'])
         return 0.0
 
     def _calculate_confidence_from_normalized(self, normalized_data: list) -> float:

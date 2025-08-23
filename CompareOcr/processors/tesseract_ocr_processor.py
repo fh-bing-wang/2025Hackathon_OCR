@@ -108,7 +108,6 @@ class TesseractOcrProcessor(OCRProcessorInterface):
                 "pages": all_results,
                 "combined_text": combined_text,
                 "overall_confidence": 0.0,
-                # "combined_text": " ".join([page["full_text"] for page in all_results]),
                 # "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
