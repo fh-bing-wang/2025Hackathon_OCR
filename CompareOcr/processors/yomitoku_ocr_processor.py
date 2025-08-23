@@ -126,16 +126,17 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 cv2.imwrite(f"{image_output_path}_{i}.jpg", ocr_vis)
                 cv2.imwrite(f"{image_output_path}_layout_{i}.jpg", layout_vis)
 
-                print(f"'words' in result: {True if 'words' in result else False}")
-                print(f"hasattr(result, 'words'): {'words' in result}")
                 # Extract text and confidence data
+                text_data, full_text, average_rec_confidence, average_det_confidence = self._extract_text_data(result)
+
                 page_result = {
                     "page_index": i,
                     "image_output_path": image_output_path,
                     "json_output_path": image_output_path + f"_{i}.json",
-                    "text_data": self._extract_text_data(result),
-                    "full_text": self._extract_full_text(result),
-                    "average_confidence": self._calculate_average_confidence(result)
+                    "text_data": text_data,
+                    "full_text": full_text,
+                    "average_rec_confidence": average_rec_confidence,
+                    "average_det_confidence": average_det_confidence
                 }
 
                 all_results.append(page_result)
@@ -146,9 +147,9 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 "metadata": processing_metadata,
                 "pages": all_results,
                 "combined_text": " ",
-                "overall_confidence": 0.0,
                 "combined_text": " ".join([page["full_text"] for page in all_results]),
-                # "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
+                "overall_det_confidence": sum([page["average_det_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
+                "overall_rec_confidence": sum([page["average_rec_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
                     "filename_prefix": file_name
@@ -215,32 +216,27 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
     def _extract_text_data(self, result) -> list:
         """Extract text data from YomitokuOCR result object."""
         text_data = []
-        
+        full_text = ""
+        rec_confidences = 0
+        det_confidences = 0
+
         words = result.words
         for word in words:
             text_data.append({
                 "text": word.content,
-                "confidence": word.det_score,
+                "det_confidence": word.det_score,
+                "rec_confidence": word.rec_score,
                 "bounding_box": word.points
             })
-
-        return text_data
-
-    def _extract_full_text(self, result) -> str:
-        """Extract all text as a single string from YomitokuOCR result."""
-        full_text = ""
-        
-        words = result.words
-        for word in words:
             full_text += word.content
+            rec_confidences += word.rec_score
+            det_confidences += word.det_score
 
-        return full_text
+        average_rec_confidence = rec_confidences / len(words) if words else 0
+        average_det_confidence = det_confidences / len(words) if words else 0
 
-    def _calculate_average_confidence(self, result) -> float:
-        """Calculate average confidence score from YomitokuOCR result."""
-        if hasattr(result, 'rec_scores') and result.rec_scores:
-            return sum(result.rec_scores) / len(result.rec_scores)
-        return 0.0
+        return text_data, full_text, average_rec_confidence, average_det_confidence
+
 
     def _calculate_confidence_from_normalized(self, normalized_data: list) -> float:
         """Calculate average confidence from normalized data."""

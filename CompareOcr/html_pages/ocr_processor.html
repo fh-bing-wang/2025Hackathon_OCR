@@ -1107,7 +1107,8 @@
                         // Store results in expected format
                         results[model] = {
                             text: modelResult.text,
-                            confidence: modelResult.confidence,
+                            rec_confidence: modelResult.rec_confidence,
+                            det_confidence: modelResult.det_confidence,
                             processingTime: modelResult.processing_time,
                             detectedLanguage: 'en', // Could be extracted from metadata
                             metadata: modelResult.metadata
@@ -1124,7 +1125,8 @@
                             error: true,
                             message: modelResult ? modelResult.error_message : 'Model result not found',
                             text: 'Processing failed',
-                            confidence: 0,
+                            rec_confidence: 0,
+                            det_confidence: 0,
                             processingTime: '0s'
                         };
                     }
@@ -1157,7 +1159,8 @@
                         error: true,
                         message: errorMessage,
                         text: 'Processing failed',
-                        confidence: 0,
+                        rec_confidence: 0,
+                        det_confidence: 0,
                         processingTime: '0s'
                     };
                 });
@@ -1220,7 +1223,8 @@
                             <p><strong>Extracted Text:</strong></p>
                             <p style="margin: 10px 0; padding: 10px; background: white; border-radius: 6px; border-left: 3px solid #667eea;">${result.text || 'No text extracted'}</p>
                             <div style="display: flex; gap: 20px; font-size: 0.9rem; color: #666; margin-top: 10px; flex-wrap: wrap;">
-                                ${result.confidence !== undefined ? `<span><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</span>` : ''}
+                                ${result.rec_confidence !== undefined ? `<span><strong>RecConfidence:</strong> ${(result.rec_confidence * 100).toFixed(1)}%</span>` : ''}
+                                ${result.det_confidence !== undefined ? `<span><strong>DetConfidence:</strong> ${(result.det_confidence * 100).toFixed(1)}%</span>` : ''}
                                 ${result.processingTime ? `<span><strong>Processing Time:</strong> ${result.processingTime}</span>` : ''}
                                 ${result.detectedLanguage ? `<span><strong>Language:</strong> ${result.detectedLanguage.toUpperCase()}</span>` : ''}
                                 ${uploadMode === 'folder' ? `<span><strong>Files Processed:</strong> ${selectedFiles.length}</span>` : ''}

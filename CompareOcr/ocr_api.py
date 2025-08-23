@@ -41,7 +41,8 @@ class OCRResult(BaseModel):
     model: str = Field(..., description="OCR model used")
     success: bool = Field(..., description="Whether processing was successful")
     text: str = Field("", description="Extracted text")
-    confidence: float = Field(0.0, description="Average confidence score")
+    rec_confidence: float = Field(0.0, description="Average recognition confidence score")
+    det_confidence: float = Field(0.0, description="Average detection confidence score")
     processing_time: str = Field("", description="Time taken to process")
     error_message: Optional[str] = Field(None, description="Error message if processing failed")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional processing metadata")
@@ -229,7 +230,6 @@ async def process_images(request: OCRRequest):
                     file_name=model_filename,
                     file_type=request.filetype
                 )
-                print(f"Processing result for {model_name}: {processing_result}")
 
                 # Calculate processing time
                 processing_time = str(datetime.now() - model_start_time)
@@ -239,7 +239,8 @@ async def process_images(request: OCRRequest):
                     model=model_name,
                     success=True,
                     text=processing_result.get('combined_text', ''),
-                    confidence=processing_result.get('overall_confidence', 0.0),
+                    rec_confidence=processing_result.get('overall_rec_confidence', 0.0),
+                    det_confidence=processing_result.get('overall_det_confidence', 0.0),
                     processing_time=processing_time,
                     metadata=processing_result.get('metadata', {})
                 )
