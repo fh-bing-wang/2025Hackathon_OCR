@@ -115,16 +115,30 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 # Use executor to run the synchronous DocumentAnalyzer in a thread pool
                 # This avoids the "asyncio.run() cannot be called from a running event loop" error
                 loop = asyncio.get_running_loop()
-                results, ocr_vis, layout_vis = await loop.run_in_executor(None, self.ocr, img)
+                result, ocr_vis, layout_vis = await loop.run_in_executor(None, self.ocr, img)
                 print(f"Result page {i+1}/{len(images)}: {result_filename}")
 
                 # HTML形式で解析結果をエクスポート
-                results.to_html(f"{image_output_path}_{i}.html", img=img)
-                results.to_json(f"{image_output_path}_{i}.json", img=img)
+                result.to_html(f"{image_output_path}_{i}.html", img=img)
+                result.to_json(f"{image_output_path}_{i}.json", img=img)
 
                 # 可視化画像を保存
                 cv2.imwrite(f"{image_output_path}_{i}.jpg", ocr_vis)
                 cv2.imwrite(f"{image_output_path}_layout_{i}.jpg", layout_vis)
+
+                print(f"'words' in result: {True if 'words' in result else False}")
+                print(f"hasattr(result, 'words'): {'words' in result}")
+                # Extract text and confidence data
+                page_result = {
+                    "page_index": i,
+                    "image_output_path": image_output_path,
+                    "json_output_path": image_output_path + f"_{i}.json",
+                    "text_data": self._extract_text_data(result),
+                    "full_text": self._extract_full_text(result),
+                    "average_confidence": self._calculate_average_confidence(result)
+                }
+
+                all_results.append(page_result)
 
             # Create summary result
             summary_result = {
@@ -133,7 +147,7 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
                 "pages": all_results,
                 "combined_text": " ",
                 "overall_confidence": 0.0,
-                # "combined_text": " ".join([page["full_text"] for page in all_results]),
+                "combined_text": " ".join([page["full_text"] for page in all_results]),
                 # "overall_confidence": sum([page["average_confidence"] for page in all_results]) / len(all_results) if all_results else 0,
                 "output_files": {
                     "base_path": output_path,
@@ -201,20 +215,26 @@ class YomitokuOcrProcessor(OCRProcessorInterface):
     def _extract_text_data(self, result) -> list:
         """Extract text data from YomitokuOCR result object."""
         text_data = []
-        if hasattr(result, 'rec_texts') and hasattr(result, 'rec_scores') and hasattr(result, 'dt_polys'):
-            for i, text in enumerate(result.rec_texts):
-                text_data.append({
-                    "text": text,
-                    "confidence": result.rec_scores[i] if i < len(result.rec_scores) else 0.0,
-                    "bounding_box": result.dt_polys[i].tolist() if i < len(result.dt_polys) else None
-                })
+        
+        words = result.words
+        for word in words:
+            text_data.append({
+                "text": word.content,
+                "confidence": word.det_score,
+                "bounding_box": word.points
+            })
+
         return text_data
 
     def _extract_full_text(self, result) -> str:
         """Extract all text as a single string from YomitokuOCR result."""
-        if hasattr(result, 'rec_texts'):
-            return " ".join(result.rec_texts)
-        return ""
+        full_text = ""
+        
+        words = result.words
+        for word in words:
+            full_text += word.content
+
+        return full_text
 
     def _calculate_average_confidence(self, result) -> float:
         """Calculate average confidence score from YomitokuOCR result."""
