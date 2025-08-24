@@ -326,17 +326,21 @@ async def compare_results():
     Compare the results of different OCR models.
     """
     # Implement comparison logic here
-    res1 = "./html_pages/ocr_results/1754916020965/paddle/3_病理検査報告書_paddle_0_result_json/tmp8z77o5s5_0_res.json"
-    res2 = "./html_pages/ocr_results/1754916331901/yomitoku/3_病理検査報告書_yomitoku_0_0.json"
+    paddleRes = "./html_pages/ocr_results/1756003031438/paddle/01_breast_x-ray_report_paddle_0_result_json/tmplu9uo2gh_res.json"
+    yomitokuRes = "./html_pages/ocr_results/1756003031438/yomitoku/01_breast_x-ray_report_yomitoku_0_0.json"
+    tesseractRes = "./html_pages/ocr_results/1756003031438/tesseract/01_breast_x-ray_report_tesseract.json"
 
     paddleProcessor = OCRProcessorFactory.create_processor('paddle')
     yomitokuProcessor = OCRProcessorFactory.create_processor('yomitoku')
+    tesseractProcessor = OCRProcessorFactory.create_processor('tesseract')
 
     # Compare results using the processors
-    paddle_result = paddleProcessor.normalize_json_result(res1)
-    yomitoku_result = yomitokuProcessor.normalize_json_result(res2)
+    paddle_result = paddleProcessor.normalize_json_result(paddleRes)
+    yomitoku_result = yomitokuProcessor.normalize_json_result(yomitokuRes)
+    tesseract_result = tesseractProcessor.normalize_json_result(tesseractRes)
 
     return {
         "paddle": paddle_result,
-        "yomitoku": yomitoku_result
+        "yomitoku": yomitoku_result,
+        "tesseract": tesseract_result
     }

@@ -87,7 +87,7 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as temp_file:
                 temp_file.write(binary_data)
                 temp_path = temp_file.name
-            
+
             # Process with PaddleOCR
             results = self.ocr.predict(temp_path)
             print(f"Output length: {len(results)}:")
@@ -183,17 +183,17 @@ class PaddleOcrProcessor(OCRProcessorInterface):
             # Use the existing normalizer
             normalized_data = self.normalizer.normalize(raw_result)
             
-            # Add additional metadata
-            normalized_result = {
-                "source_file": json_filename,
-                "normalized_timestamp": datetime.now().isoformat(),
-                "total_text_blocks": len(normalized_data),
-                "data": normalized_data,
-                "full_text": " ".join([item.get("text", "") for item in normalized_data]),
-                "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
-            }
+            # # Add additional metadata
+            # normalized_result = {
+            #     "source_file": json_filename,
+            #     "normalized_timestamp": datetime.now().isoformat(),
+            #     "total_text_blocks": len(normalized_data),
+            #     "data": normalized_data,
+            #     "full_text": " ".join([item.get("text", "") for item in normalized_data]),
+            #     "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
+            # }
 
-            return normalized_result
+            return normalized_data
 
         except Exception as e:
             raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")

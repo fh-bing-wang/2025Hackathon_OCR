@@ -9,6 +9,7 @@ from PIL import Image
 from pdf2image import convert_from_path
 import pytesseract
 
+from result_normalizer.tesseract_ocr_normanizer import TesseractOcrNormalizer
 from processors.ocr_processor_interface import OCRProcessorInterface
 
 # See doc https://github.com/madmaze/pytesseract
@@ -35,6 +36,7 @@ class TesseractOcrProcessor(OCRProcessorInterface):
             lang (str): Language for OCR recognition (default: 'en')
         """
         self.ocr = pytesseract
+        self.normalizer = TesseractOcrNormalizer
 
     async def process_binary_data(self, 
                           binary_data: bytes, 
@@ -84,9 +86,10 @@ class TesseractOcrProcessor(OCRProcessorInterface):
                 temp_path = temp_file.name
 
             combined_text = ""
+            all_results = []
             if file_type == 'application/pdf':
                 pages = convert_from_path(temp_path, dpi=600, fmt='png')
-                all_results = []
+                
                 for i, page in enumerate(pages):
                     text, json_data = self._process_image_data(page, output_path, f"{file_name}_{i}")
                     combined_text += text
@@ -94,8 +97,8 @@ class TesseractOcrProcessor(OCRProcessorInterface):
                     # Extract text and confidence data
                     page_result = {
                         "page_index": i,
-                        "image_output_path":f"output_path_{i}",
-                        "json_output_path": f"output_path_{i}",
+                        "image_output_path":f"{output_path}_{i}",
+                        "json_output_path": f"{output_path}_{i}",
                         "text_data": self._extract_text_data(json_data),
                         "full_text": text,
                         "average_confidence": self._calculate_average_confidence(json_data)
@@ -104,17 +107,16 @@ class TesseractOcrProcessor(OCRProcessorInterface):
                     all_results.append(page_result)
             else:
                 combined_text, json_data = self._process_image_data(Image.open(temp_path), output_path, file_name)
-
                 page_result = {
                     "page_index": 0,
-                    "image_output_path": f"output_path_{i}",
-                    "json_output_path": f"output_path_{i}",
+                    "image_output_path": output_path,
+                    "json_output_path": output_path,
                     "text_data": self._extract_text_data(json_data),
                     "full_text": combined_text,
                     "average_confidence": self._calculate_average_confidence(json_data)
                 }
 
-                all_results.append(json_data)
+                all_results.append(page_result)
 
             # Process results and save
             processing_metadata = {
@@ -152,6 +154,8 @@ class TesseractOcrProcessor(OCRProcessorInterface):
         # Process the image data with Tesseract OCR
         try:
             data = self.ocr.image_to_data(image_data, output_type=pytesseract.Output.DICT, lang='jpn+eng')
+            print('tesseract ocr data: ')
+            print(data)
             json_data = self._text_data_to_json(data, os.path.join(output_path, f"{file_name}.json"))
             
             hocr = pytesseract.image_to_pdf_or_hocr(image_data, extension="hocr", lang='jpn+eng')
@@ -228,16 +232,16 @@ class TesseractOcrProcessor(OCRProcessorInterface):
             normalized_data = self.normalizer.normalize(raw_result)
             
             # Add additional metadata
-            normalized_result = {
-                "source_file": json_filename,
-                "normalized_timestamp": datetime.now().isoformat(),
-                "total_text_blocks": len(normalized_data),
-                "data": normalized_data,
-                "full_text": " ".join([item.get("text", "") for item in normalized_data]),
-                "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
-            }
+            # normalized_result = {
+            #     "source_file": json_filename,
+            #     "normalized_timestamp": datetime.now().isoformat(),
+            #     "total_text_blocks": len(normalized_data),
+            #     "data": normalized_data,
+            #     "full_text": " ".join([item.get("text", "") for item in normalized_data]),
+            #     "average_confidence": self._calculate_confidence_from_normalized(normalized_data)
+            # }
 
-            return normalized_result
+            return normalized_data
 
         except Exception as e:
             raise ValueError(f"Failed to normalize JSON data from {json_filename}: {str(e)}")
@@ -246,7 +250,6 @@ class TesseractOcrProcessor(OCRProcessorInterface):
         """Extract text data from TesseractOCR result object."""
         text_data = []
         for text in result:
-            print(f'text in result: {text}')
             text_data.append({
                 "text": text,
                 "confidence": text.get('confidence', 0),

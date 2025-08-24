@@ -10,24 +10,22 @@ class YomitokuOcrNormalizer():
         Returns:
             dict: Normalized OCR result.
         """
-        normalized_result = []
+        # normalized_result = []
 
-        paragraphs = result.get('paragraphs', [])
+        words = result.get('words', [])
 
+        rec_texts = [p.get("content", "") for p in words]
+        rec_scores = [p.get("det_score", "") for p in words]
+        rec_boxes = [YomitokuOcrNormalizer.to_axis_aligned(p.get("points", [])) for p in words]
 
+        return {
+            "text": rec_texts,
+            "rec_confidence": rec_scores,
+            "rec_boxes": rec_boxes
+        }
 
-        rec_texts = result.get('rec_texts', [])
-        rec_scores = result.get('rec_scores', [])
-        rec_boxes = result.get('rec_boxes', [])
-
-        if len(rec_texts) != len(rec_scores) or len(rec_texts) != len(rec_boxes):
-            raise ValueError("Inconsistent lengths of rec_texts, rec_scores, and rec_boxes")
-
-        for i in range(len(paragraphs)):
-            normalized_result.append({
-                "text": paragraphs[i].get("contents", ""),
-                "confidence": 0.0,
-                "bounding_box": paragraphs[i].get("box", [])
-            })
-
-        return normalized_result
+    @staticmethod
+    def to_axis_aligned(points):
+        xs = [p[0] for p in points]
+        ys = [p[1] for p in points]
+        return (min(xs), min(ys), max(xs), max(ys))
