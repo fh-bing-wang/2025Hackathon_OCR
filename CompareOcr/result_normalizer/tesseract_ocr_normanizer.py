@@ -50,7 +50,7 @@ class TesseractOcrNormalizer():
             rec_boxes.append(combined_box)
 
         return {
-            "rec_texts": rec_texts,
+            "text": rec_texts,
             "rec_scores": rec_scores,
             "rec_boxes": rec_boxes
         }

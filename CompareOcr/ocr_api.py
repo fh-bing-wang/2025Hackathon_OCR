@@ -17,6 +17,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from comparator.comparator import Comparator
 from processors.tesseract_ocr_processor import TesseractOcrProcessor
 from processors.paddle_ocr_processor import PaddleOcrProcessor
 from processors.yomitoku_ocr_processor import YomitokuOcrProcessor
@@ -338,6 +339,15 @@ async def compare_results():
     paddle_result = paddleProcessor.normalize_json_result(paddleRes)
     yomitoku_result = yomitokuProcessor.normalize_json_result(yomitokuRes)
     tesseract_result = tesseractProcessor.normalize_json_result(tesseractRes)
+
+    print("paddle_result: ", Comparator.combine_texts(paddle_result))
+    print("yomitoku_result: ", Comparator.combine_texts(yomitoku_result))
+    print("tesseract_result: ", Comparator.combine_texts(tesseract_result))
+
+    # compare_res = Comparator.compare("paddle", paddle_result, "yomitoku", yomitoku_result, iou_threshold=0.1)
+
+    # print("compare_res: ")
+    # print(compare_res)
 
     return {
         "paddle": paddle_result,
