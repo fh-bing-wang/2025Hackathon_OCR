@@ -190,4 +190,4 @@ class Comparator():
     def normalize_text(s: str) -> str:
         s = Comparator.normalize_symbols(s)
         s = Comparator.normalize_unicode(s)
-        return re.sub(r"\s+", "", s)
+        return re.sub(r"\s+", "", s.replace("\n", ""))
