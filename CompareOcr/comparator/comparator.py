@@ -145,20 +145,20 @@ class Comparator():
         current_y = None
 
         for (box, text) in items:
-            y_min = box[1]
+            y_center = (box[1] + box[3]) / 2  # use vertical center instead of y_min
             if current_y is None:
                 current_row.append((box, text))
-                current_y = y_min
+                current_y = y_center
             else:
                 # Check if the box belongs to the current row
-                if abs(y_min - current_y) <= y_threshold:
+                if abs(y_center - current_y) <= y_threshold:
                     current_row.append((box, text))
                 else:
                     # Save the finished row
                     rows.append(current_row)
                     # Start a new row
                     current_row = [(box, text)]
-                    current_y = y_min
+                    current_y = y_center
 
         if current_row:
             rows.append(current_row)

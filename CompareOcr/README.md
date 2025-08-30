@@ -5,7 +5,7 @@ source ./compare_ocr_env/bin/activate
 python3 start_api_server.py
 
 # call endpoint
-curl http://127.0.0.1:8000/
+curl -v http://127.0.0.1:8000/compare-results
 
 # serve the .html file
 python3 -m http.server 8888
