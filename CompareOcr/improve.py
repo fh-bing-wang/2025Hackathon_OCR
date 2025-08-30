@@ -11,19 +11,19 @@ def enhance_image(input_path, output_path=None):
         return
 
     # Denoise (color)
-    denoised = cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+    # denoised = cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)
+
+    # Sharpen
+    kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])
+    sharpened = cv2.filter2D(img, -1, kernel)
 
     # Improve contrast using CLAHE (on L-channel in LAB color space)
-    lab = cv2.cvtColor(denoised, cv2.COLOR_BGR2LAB)
+    lab = cv2.cvtColor(sharpened, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
     l2 = clahe.apply(l)
     lab = cv2.merge((l2,a,b))
     contrast = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-
-    # Sharpen
-    kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])
-    sharpened = cv2.filter2D(contrast, -1, kernel)
 
     if output_path is None:
         base, ext = os.path.splitext(input_path)
@@ -31,7 +31,7 @@ def enhance_image(input_path, output_path=None):
             ext = ".png"
         output_path = f"{base}_enhanced{ext}"
 
-    cv2.imwrite(output_path, sharpened)
+    cv2.imwrite(output_path, contrast)
     print(f"✅ Enhanced image saved to {output_path}")
 
 
